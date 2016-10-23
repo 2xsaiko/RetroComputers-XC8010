@@ -1,0 +1,16 @@
+[
+{
+  "modid": "xc8010",
+  "name": "RetroComputers: XC8010 CPU",
+  "description": "#1 CPU addon for RetroComputers!",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["MRebhan"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
