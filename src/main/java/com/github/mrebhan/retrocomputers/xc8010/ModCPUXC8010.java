@@ -16,22 +16,22 @@ import net.minecraftforge.fml.relauncher.Side;
 @Mod(modid = "xc8010", name = "RetroComputers: XC8010 CPU", version = "1.0", dependencies = "required-after:retrocomputers")
 public class ModCPUXC8010 {
 
-	@Instance
-	public static ModCPUXC8010 instance = new ModCPUXC8010();
+    @Instance
+    public static ModCPUXC8010 instance = new ModCPUXC8010();
 
-	public ItemCPU cpuItem;
+    public ItemCPU cpuItem;
 
-	@EventHandler
-	public void preInit(FMLPreInitializationEvent e) {
-		cpuItem = new ItemCPUXC8010("xc8010:cpu", "cpu_xc8010");
-		GameRegistry.register(cpuItem);
+    @EventHandler
+    public void preInit(FMLPreInitializationEvent e) {
+        cpuItem = new ItemCPUXC8010("xc8010:cpu", "cpu_xc8010");
+        GameRegistry.register(cpuItem);
 
-		DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk",
-				new ResourceLocation("xc8010:forth.img"));
-		if (e.getSide() == Side.CLIENT) {
-			ModelLoader.setCustomModelResourceLocation(cpuItem, 0,
-					new ModelResourceLocation("xc8010:cpu", "inventory"));
-		}
-	}
+        DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk",
+                new ResourceLocation("xc8010:forth.bin"));
+        if (e.getSide() == Side.CLIENT) {
+            ModelLoader.setCustomModelResourceLocation(cpuItem, 0,
+                    new ModelResourceLocation("xc8010:cpu", "inventory"));
+        }
+    }
 
 }

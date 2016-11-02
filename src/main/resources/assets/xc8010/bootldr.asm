@@ -7,12 +7,11 @@ retry: db 'Retry', $00
 
 section .text
     xce
-reset:
-    sep #$30
-    ldx #$00FF
-    txs
 start:
-    lda #reset
+    rep #$30
+    ldx #$01FF
+    txs
+    lda #start
     mmu $05
     mmu $06
     mmu $02
@@ -27,7 +26,7 @@ start:
     jsr print
     ldy #$0000
 load_disk: ; load sector
-    rep #$20
+    sep #$20
     jsr rb_disk
     sty $0380
     lda #$04
@@ -44,7 +43,7 @@ load_loop:
     bra load_disk
 ls_eof:
     jsr rb_term
-    sep #$20
+    rep #$30
     cpy #$0000
     beq ls_err
     mmu $82
@@ -75,7 +74,7 @@ rb_disk: ; setup disk r/w
 
 clrscr:
     jsr rb_term
-    rep #$20
+    sep #$20
     lda #$20
     sta $0308 ; set fill value to space
     stz $030A ; set fill x origin to 0
@@ -90,13 +89,13 @@ clrscr:
     sta $0303 ; set cursor mode to blink
     stz $0301 ; set cursor x position to 0
     stz $0302 ; set cursor y position to 0
-    sep #$20
+    rep #$20
     wai ; wait for fill operation
     rts
 
 print: ; print string at address $10 to terminal
     jsr rb_term
-    rep #$30
+    sep #$30
     lda $0302
     sta $0300 ; set screen row to cursor y position
     ldy #$00
@@ -108,27 +107,27 @@ print_loop:
     bra print_loop
 print_end:
     inc $0302 ; move cursor 1 down
-    sep #$30
+    rep #$30
     rts
     
 copy_mem:
     phy
     pha
-    rep #$10
+    sep #$10
     ldy #$00
 cm_loop:
     lda $0300, y
     sta ($0020)
-    sep #$20
+    rep #$20
     pha
     inc $20
     beq cm_overflow
     pla
-    rep #$20
+    sep #$20
     iny
     cpy #$80
     bne cm_loop
-    sep #$10
+    rep #$10
     pla
     ply
     rts
