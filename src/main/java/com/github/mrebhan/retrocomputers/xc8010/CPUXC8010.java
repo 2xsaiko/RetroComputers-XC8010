@@ -127,6 +127,7 @@ public class CPUXC8010 implements ICPU {
             case 0x1A: // inc a
                 regA++;
                 regA &= maskM();
+                updNZ(regA);
                 break;
             case 0x20: // jsr abs
                 _jsr(pc2());
@@ -142,12 +143,20 @@ public class CPUXC8010 implements ICPU {
             case 0x28: // plp
                 setFlags(pop1());
                 break;
+            case 0x2a: // rol a
+                regA = _rol(regA);
+                break;
             case 0x2b: // rli
                 regI = popr2();
                 updNZX(regI);
                 break;
             case 0x38: // sec
                 up(C);
+                break;
+            case 0x3a: // dec a
+                regA--;
+                regA &= maskM();
+                updNZ(regA);
                 break;
             case 0x42: // nxa
                 regA = peekM(regI);
@@ -187,6 +196,13 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x69: // adc #
                 _adc(pcM());
+                break;
+            case 0x6a: // ror a
+                regA = _ror(regA);
+                break;
+            case 0x6b: // rla
+                regA = poprM();
+                updNZ(regA);
                 break;
             case 0x74: // stz zp, x
                 _stz(pc1X());
@@ -228,6 +244,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x8d: // sta abs
                 _sta(pc2());
+                break;
+            case 0x90: // bcc rel
+                _bra(pc1(), !isup(C));
                 break;
             case 0x91: // sta (ind), y
                 _sta(pcIY());
@@ -273,6 +292,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0xa5: // lda zp
                 _lda(peekM(pc1()));
+                break;
+            case 0xa7: // lda r, r
+                _lda(peekM(pc1R()));
                 break;
             case 0xa8: // tay
                 regY = regA & maskX();
@@ -455,6 +477,22 @@ public class CPUXC8010 implements ICPU {
     private void _and(int data) {
         regA &= data & maskM();
         updNZ(regA);
+    }
+
+    private int _rol(int data) {
+        int i = data << 1;
+        if (isup(C)) i |= 0x0001;
+        setFlags(C, (data & negM()) != 0);
+        updNZ(i);
+        return i;
+    }
+
+    private int _ror(int data) {
+        int i = data >> 1;
+        if (isup(C)) i |= negM();
+        setFlags(C, (data & 0x0001) != 0);
+        updNZ(i);
+        return i;
     }
 
     private void updNZ(int data) {
@@ -758,8 +796,8 @@ public class CPUXC8010 implements ICPU {
     }
 
     private void push2(int i) {
-        push1(i & 0xFF);
         push1(i >> 8);
+        push1(i & 0xFF);
     }
 
     private void pushM(int i) {
@@ -785,7 +823,7 @@ public class CPUXC8010 implements ICPU {
     private int pop2() {
         int i1 = pop1();
         int i2 = pop1();
-        return i1 << 8 | i2;
+        return i2 << 8 | i1;
     }
 
     private int popM() {
@@ -810,8 +848,8 @@ public class CPUXC8010 implements ICPU {
     }
 
     private void pushr2(int i) {
-        pushr1(i & 0xFF);
         pushr1(i >> 8);
+        pushr1(i & 0xFF);
     }
 
     private void pushrM(int i) {
@@ -837,7 +875,23 @@ public class CPUXC8010 implements ICPU {
     private int popr2() {
         int i1 = popr1();
         int i2 = popr1();
-        return i1 << 8 | i2;
+        return i2 << 8 | i1;
+    }
+
+    private int poprM() {
+        if (isup(M)) {
+            return popr1();
+        } else {
+            return popr2();
+        }
+    }
+
+    private int poprX() {
+        if (isup(X)) {
+            return popr1();
+        } else {
+            return popr2();
+        }
     }
 
     private int peekM(int addr) {

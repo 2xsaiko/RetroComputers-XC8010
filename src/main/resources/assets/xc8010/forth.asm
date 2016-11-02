@@ -115,12 +115,12 @@ section dict
     nxt
     
     dcode DUP,3,,
-        lda $02, s
+        lda $01, s
         pha
     nxt
     
     dcode OVER,4,,
-        lda $04, s
+        lda $03, s
         pha
     nxt
     
@@ -158,9 +158,9 @@ section dict
     nxt
     
     dcode 2DUP,4,,TWODUP
-        lda $02, s
+        lda $01, s
         tax
-        lda $04, s
+        lda $03, s
         pha
         phx
     nxt
@@ -218,16 +218,15 @@ QDUP_zero:
         clc
         pla
         clc
-        adc $02, s
+        adc $01, s
         ply
         pha
     nxt
     
     dcode -,1,,SUB
-        clc
-        lda $04, s
+        lda $03, s
         sec
-        sbc $02, s
+        sbc $01, s
         ply
         ply
         pha
@@ -240,6 +239,11 @@ QDUP_zero:
         ply
         pha
     nxt
+    
+    dword 2*,2,,MULTWO
+        .lit 1
+        .wp LSHIFT
+    .wp EXIT
     
     dcode /MOD,4,,DIVMOD
         pla
@@ -260,18 +264,33 @@ QDUP_zero:
         .wp NIP
     .wp EXIT
     
-    dcode =,1,,EQU
-        pla
-        cmp $02, s
-        beq EQU_yes
-        lda #_F_FALSE
-        bra EQU_end
-EQU_yes:
-        lda #_F_TRUE
-EQU_end:
-        ply
-        pha
-    nxt
+    dword 2/,2,,TWODIV
+        .lit 1
+        .wp RSHIFT
+    .wp EXIT
+    
+;    dcode =,1,,EQU
+;        pla
+;        sec
+;        sbc $02, s
+;        beq EQU_yes
+;        lda #_F_FALSE
+;        bra EQU_end
+;EQU_yes:
+;        lda #_F_TRUE
+;EQU_end:
+;        ply
+;        pha
+;    nxt
+    
+    dword =,1,,EQU
+        .wp SUB
+        .wp ZBRANCH
+        .wp $0004
+        .wp FALSE
+        .wp EXIT
+        .wp TRUE
+    .wp EXIT
     
     dword <>,2,,NEQU
         .wp EQU
@@ -281,7 +300,7 @@ EQU_end:
     dcode <,1,,LT
         pla
         sec
-        sbc $02, s
+        sbc $01, s
         bcs LT_no
         lda #_F_TRUE
         bra LT_end
@@ -320,21 +339,21 @@ ZEQU_end:
     
     dcode AND,3,,
         pla
-        and $02, s
+        and $01, s
         ply
         pha
     nxt
     
     dcode OR,2,,
         pla
-        ora $02, s
+        ora $01, s
         ply
         pha
     nxt
     
     dcode XOR,3,,
         pla
-        eor $02, s
+        eor $01, s
         ply
         pha
     nxt
@@ -345,32 +364,83 @@ ZEQU_end:
         pha
     .wp EXIT
     
+    dcode LROTATE,7,,
+        clc
+        ply ; get amount to rot left
+        pla ; get number
+LROT_loop:
+        rol a
+        dey
+        bne LROT_loop
+        bcc LROT_end
+        inc a
+LROT_end:
+        pha
+    nxt
+    
+    dcode RROTATE,7,,
+        clc
+        ply ; get amount to rot right
+        pla ; get number
+RROT_loop:
+        ror a
+        dey
+        bne RROT_loop
+        bcc RROT_end
+        clc
+        adc #$8000
+RROT_end:
+        pha
+    nxt
+    
+    dcode LSHIFT,6,,
+        ply ; get amount to rot left
+        pla ; get number
+LSHIFT_loop:
+        clc
+        rol a
+        dey
+        bne LSHIFT_loop
+        pha
+    nxt
+    
+    dcode RSHIFT,6,,
+        ply ; get amount to rot left
+        pla ; get number
+RSHIFT_loop:
+        clc
+        ror a
+        dey
+        bne RSHIFT_loop
+        pha
+    nxt
+    
     dconst CELL,4,,,$02
     
     dcode !,1,,POKE
-        lda $04, s
+        lda $03, s
         ldy #$0000
-        sta ($02, s), y
+        sta ($01, s), y
         ply
         ply
     nxt
     
     dcode @,1,,PEEK
         ldy #$0000
-        lda ($02, s), y
+        lda ($01, s), y
         ply
         pha
     nxt
     
-    dcode C!,2,,POKEBYTE
-        lda $04, s
-        ldy #$0000
-        sep #$20
-        sta ($02, s), y
-        rep #$20
-        ply
-        ply
-    nxt
+    dword C!,2,,POKEBYTE
+        .wp DUP
+        .wp PEEK
+        .wp SPLIT
+        .wp DROP
+        .wp ROT
+        .wp JOIN
+        .wp POKE
+    .wp EXIT
     
     dword C@,2,,PEEKBYTE
         .wp PEEK
@@ -393,6 +463,11 @@ ZEQU_end:
         pha
     nxt
     
+    dcode R@,2,,RFETCH
+        lda $01, r
+        pha
+    nxt
+    
     dcode RSP@,4,,RSPGET
         trx
         phx
@@ -409,7 +484,14 @@ ZEQU_end:
     
     dword COLD,4,,
         ; print welcome messages, etc.
+        .wp CR
+        .lit COLD_wline
+        .lit 15
+        .wp TYPE
+        .wp CR
         .wp QUIT
+        
+COLD_wline: db 'RCOS v0.1 alpha'
 
     dword QUIT,4,,
         .wp RPRST
@@ -432,37 +514,67 @@ ZEQU_end:
     nxt
 
     dcode 0BRANCH,7,,ZBRANCH
-        pla
-        beq BRANCH
-        nxa ; consume address regardless if it's 0 or not
+        clc
+        nxa
+        ply
+        bne ZBRANCH_false
+        tix
+        stx $02
+        adc $02
+        clc
+        tax
+        txi
+ZBRANCH_false:
     nxt
     
     dcode TICK,4,,
         wai
     nxt
+    
+    dcode I,1,,
+        lda $03, r
+        pha
+    nxt
+    
+    dcode J,1,,
+        lda $07, r
+        pha
+    nxt
+    
+    dcode K,1,,
+        lda $0b, r
+        pha
+    nxt
 
     dword INTERPRET,9,,
-        .wp CR
-        ;.lit $3E ; show '> ' prompt
-        .wp RETURN
+        .wp CR        
+        .lit $3E ; show '> ' prompt
         .wp EMIT
         .lit $20
         .wp EMIT
-        ;.wp KEY
-        ;.wp EMIT
         .lit $80
         .lit $80
+        
         .wp READLINE ; read into address $80, max length $80
-        
-        ; Tests:
-        
-        ;.lit $FC
-        ;.wp BUS_GETWIN
-        ;.wp EMIT
-        ;.wp EMIT
-        ;.wp EMIT
-        ;.wp EMIT
-        ;.wp HALT
+        .wp TYPE
+    .wp EXIT
+    
+    dword SPLIT,5,,
+        .wp DUP
+        .lit 8
+        .wp RSHIFT
+        .wp SWAP
+        .lit $00FF
+        .wp AND
+    .wp EXIT
+    
+    dword JOIN,4,,
+        .lit $00FF
+        .wp AND
+        .wp SWAP
+        .lit 8
+        .wp LSHIFT
+        .wp OR
     .wp EXIT
     
     dcode HALT,4,,
@@ -501,15 +613,18 @@ ZEQU_end:
         .wp EMIT
     .wp EXIT
     
+    dcode BINDTERM,8,,
+        jsr bind_term
+    nxt
+    
     bind_term:
         lda var_TERMADDR
         mmu $00
     rts
     
     dcode EMIT,4,,
-        ;jsr bind_term
+        jsr bind_term
         mmu $81
-        mmu $FF
         tay
         sep #$20
         lda $0002, y
@@ -520,9 +635,9 @@ ZEQU_end:
         adc #$10
         sta $00
         stz $01
-        pla ; throw high bytes away
         pla ; get char
         sta ($0000), y
+        pla ; throw high bytes away
         txa
         inc a
         cmp #$50
@@ -577,37 +692,48 @@ SCROLL_nocursor:
         rep #$20
     nxt
     
-    dword XY@,3,,GETXY
-        ;.wp TERMADDR
-        ;.wp BUS_SETADDR
-        .wp BUS_GETWIN
+    dword TYPE,4,,
+        .lit 0
+        .wp TOR
+        .wp TOR
         .wp DUP
-        .lit $01
+        .wp I
         .wp ADD
-        .wp PEEKBYTE
+        .wp PEEK
+        .wp EMIT
+        .wp FROMR
+        .wp FROMR
+        .wp INCR
+        .wp TWODUP
+        .wp EQU
+        .wp ZBRANCH
+        .wp $ffe4
+        .wp TWODROP
+        .wp DROP
+    .wp EXIT
+    
+    dword XY@,3,,GETXY
+        .wp BINDTERM
+        .wp BUS_GETWIN
+        .wp INCR
+        .wp PEEK
+        .wp SPLIT
         .wp SWAP
-        .lit $02
-        .wp ADD
-        .wp PEEKBYTE
     .wp EXIT
     
     dword XY!,3,,SETXY
-        .wp TERMADDR
-        .wp BUS_SETADDR
+        .wp SWAP
+        .wp JOIN
+        .wp BINDTERM
         .wp BUS_GETWIN
-        .wp DUP
-        .wp ROT
-        .lit $02
-        .wp ADD
-        .wp POKEBYTE
-        .lit $01
-        .wp ADD
-        .wp POKEBYTE
+        .wp INCR
+        .wp POKE
     .wp EXIT
     
     dcode KEY,3,,
         mmu $81
         tax
+        lda #$0000
         sep #$20
         bra KEY_check
 KEY_waitloop:
@@ -622,46 +748,27 @@ KEY_check:
         pha
     nxt
     
-    dword READ-LINE,9,,READLINE ; ( c-addr maxlength -- read )
-        ;.wp TERMADDR
-        ;.wp BUS_SETADDR
-        ;.wp BUS_GETWIN
-        .lit 0 ; write c-addr to 0 and maxlength to 2
-        .wp POKE
-        .lit 2
-        .wp POKE
-        
-        .lit 0 ; current length
-        
-        .wp KEY ; read char
-        
-        .wp DUP
-        .wp RETURN
-        .wp EQU
-        .wp ZBRANCH
-        .wp $0006
-        .wp DROP
+    dword DECSR,5,F_HIDDEN,
+        .wp GETXY
+        .wp SWAP
+        .wp DECR
+        .wp SWAP
+        .wp TWODUP
+        .wp SETXY
         .wp SPACE
-        .wp EXIT
-        
-        .wp DUP
-        .wp EMIT
-        
-        .wp OVER
-        .lit 0
-        .wp ADD
-        .wp POKEBYTE
-        
-        .wp BRANCH
-        .wp $ffdc
-        
+        .wp SETXY
     .wp EXIT
-        
+    
+    dword READ-LINE,9,,READLINE ; ( c-addr maxlength -- read )
+        .wp TOR
+        .wp TOR
+        ; version 1391293912931912893893898912, fuck
+    .wp EXIT
     
     dword WORD,4,,
     .wp EXIT
     
-    dcode .,1,,PRINT_NUM
+    dcode U.,1,,PRINT_UNUM
         ; print number and space
     nxt
 
@@ -672,6 +779,10 @@ here_pos:
     
 section .text
 
+    ;lda $00
+    ;sta var_DISKADDR
+    ;lda $01
+    ;sta var_TERMADDR
 start:
     clc
     rep #$30
@@ -684,8 +795,4 @@ start:
     lda #start
     mmu $05
     mmu $06
-    ;lda $00
-    ;sta var_DISKADDR
-    ;lda $01
-    ;sta var_TERMADDR
     ent COLD
