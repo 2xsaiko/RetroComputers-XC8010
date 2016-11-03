@@ -24,6 +24,7 @@ public class CPUXC8010 implements ICPU {
     private int regX;
     private int regY;
     private int regI;
+    private int regD;
 
     private int sp;
     private int rp;
@@ -52,6 +53,7 @@ public class CPUXC8010 implements ICPU {
         regX = 0;
         regY = 0;
         regI = 0;
+        regD = 0;
 
         sp = 0x01FF;
         rp = 0x02FF;
@@ -150,6 +152,9 @@ public class CPUXC8010 implements ICPU {
                 regI = popr2();
                 updNZX(regI);
                 break;
+            case 0x30: // bmi rel
+                _bra(pc1(), isup(N));
+                break;
             case 0x38: // sec
                 up(C);
                 break;
@@ -158,12 +163,19 @@ public class CPUXC8010 implements ICPU {
                 regA &= maskM();
                 updNZ(regA);
                 break;
+            case 0x3f: // mul abs, x
+                _mul(peekM(pc2X()));
+                break;
             case 0x42: // nxa
                 regA = peekM(regI);
                 regI += isup(M) ? 1 : 2;
                 break;
             case 0x48: // pha
                 pushM(regA);
+                break;
+            case 0x49: // eor #
+                regA ^= pcM();
+                updNZ(regA);
                 break;
             case 0x4b: // rha
                 pushrM(regA);
@@ -212,7 +224,10 @@ public class CPUXC8010 implements ICPU {
                 updNZX(regY);
                 break;
             case 0x7d: // adc abs, x
-                _adc(pcMX());
+                _adc(peekM(pc2X()));
+                break;
+            case 0x7f: // div abs, x
+                _div(peekM(pc2X()));
                 break;
             case 0x80: // bra rel
                 _bra(pc1(), true);
@@ -322,6 +337,10 @@ public class CPUXC8010 implements ICPU {
             case 0xb9: // lda abs, y
                 _lda(peekM(pc2Y()));
                 break;
+            case 0xba: // tsx
+                regX = sp & maskX();
+                updNZX(regX);
+                break;
             case 0xbd: // lda abs, x
                 _lda(peekM(pc2X()));
                 break;
@@ -367,6 +386,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0xde: // dec abs, x
                 _dec(pc2X());
+                break;
+            case 0xdf: // phd
+                pushM(regD);
                 break;
             case 0xe2: // sep #
                 _sep(pc1());
@@ -608,11 +630,45 @@ public class CPUXC8010 implements ICPU {
     }
 
     private void _mul(int data) {
-
+        // TODO: Implement decimal mutliplication
+        if (isup(M)) {
+            int c = regA * data;
+            regA = c & 0xFF;
+            regD = (c >> 8) & 0xFF;
+            setFlags(N, c < 0);
+            setFlags(Z, c == 0);
+            setFlags(V, (c & 0xFFFF0000) != 0);
+        } else {
+            long c = regA * data;
+            regA = (int) (c & 0xFFFF);
+            regD = (int) ((c >> 16) & 0xFFFF);
+            setFlags(N, c < 0);
+            setFlags(Z, c == 0);
+            setFlags(V, (c & 0xFFFFFFFF00000000L) != 0);
+        }
     }
 
     private void _div(int data) {
-
+        // TODO: Implement decimal division
+        if ((data & maskM()) == 0) {
+            up(V);
+            regA = 0;
+            regD = 0;
+            updNZ(regA);
+        }
+        if (isup(M)) {
+            int a = regA;
+            regA = a / data;
+            regD = a % data;
+            updNZ(regA);
+            setFlags(V, regD != 0);
+        } else {
+            int a = regA;
+            regA = a / data;
+            regD = a % data;
+            updNZ(regA);
+            setFlags(V, regD != 0);
+        }
     }
 
     private void _mmu(int data) {
@@ -982,6 +1038,7 @@ public class CPUXC8010 implements ICPU {
         regX = buf.readShort() & 0xFFFF;
         regY = buf.readShort() & 0xFFFF;
         regI = buf.readShort() & 0xFFFF;
+        regD = buf.readShort() & 0xFFFF;
         sp = buf.readShort() & 0xFFFF;
         rp = buf.readShort() & 0xFFFF;
         pc = buf.readShort() & 0xFFFF;
@@ -1001,6 +1058,7 @@ public class CPUXC8010 implements ICPU {
         buf.writeShort(regX);
         buf.writeShort(regY);
         buf.writeShort(regI);
+        buf.writeShort(regD);
         buf.writeShort(sp);
         buf.writeShort(rp);
         buf.writeShort(pc);
