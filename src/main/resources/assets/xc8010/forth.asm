@@ -23,17 +23,17 @@
     .endm
 
     .macro dvar [name],namelen,flags=0,[label]=${name},value=0
-            dword ${name},${namelen},${flags},${label}
-            .lit var_${label}
-            .wp EXIT
+            dcode ${name},${namelen},${flags},${label}
+            ent DOVAR
         var_${label}:
             db ${value}, ^${value}
     .endm
 
     .macro dconst [name],namelen,flags=0,[label]=${name},value
-        dword ${name},${namelen},${flags},${label}
-        .lit ${value}
-        .wp EXIT
+            dcode ${name},${namelen},${flags},${label}
+            ent DOCON
+        const_${label}:
+            db ${value}, ^${value}
     .endm
 
 section dict
@@ -56,6 +56,18 @@ section dict
     .set _F_FALSE,$0000
 
     dcode DOCOL,5,,
+    nxt
+    
+    dcode DOVAR,5,,
+        tix
+        phx
+        rli
+    nxt
+    
+    dcode DOCON,5,,
+        nxa
+        pha
+        rli
     nxt
 
     dcode EXIT,4,,
@@ -108,6 +120,16 @@ section dict
         ldx #_F_SPORIG
         txs
     nxt
+    
+    dword DEPTH,5,,
+        .wp SPORIG
+        .wp SPGET
+        .wp SUB
+        .lit 2
+        .wp SUB
+        .wp CELL
+        .wp DIV
+    .wp EXIT
     
     dcode DROP,4,,
         pla
@@ -235,9 +257,19 @@ QDUP_zero:
         pha
     nxt
     
-    dcode U*,1,,UMUL
+    dcode U*,2,,UMUL
         pla
         tsx
+        sec
+        mul $0001, x
+        ply
+        pha
+    nxt
+    
+    dcode *,1,,MUL
+        pla
+        tsx
+        clc
         mul $0001, x
         ply
         pha
@@ -253,9 +285,25 @@ QDUP_zero:
         .wp _DM
     .wp EXIT
     
-    dcode (U/MOD),7,,_DM
+    dword /MOD,4,,DIVMOD
+        .wp SWAP
+        .wp _DMS
+    .wp EXIT
+    
+    dcode (U/MOD),7,F_HIDDEN,_DM
         pla
         tsx
+        sec
+        div $0001, x
+        ply
+        pha
+        phd
+    nxt
+    
+    dcode (/MOD),6,F_HIDDEN,_DMS
+        pla
+        tsx
+        clc
         div $0001, x
         ply
         pha
@@ -264,6 +312,11 @@ QDUP_zero:
     
     dword U/,2,,UDIV
         .wp UDIVMOD
+        .wp DROP
+    .wp EXIT
+    
+    dword /,1,,DIV
+        .wp DIVMOD
         .wp DROP
     .wp EXIT
     
@@ -321,6 +374,17 @@ EQU_true:
 ZEQU_yes:
         lda #_F_TRUE
 ZEQU_end:
+        pha
+    nxt
+    
+        dcode 0<>,3,,ZNEQU
+        pla
+        bne ZNEQU_yes
+        lda #_F_FALSE
+        bra ZNEQU_end
+ZNEQU_yes:
+        lda #_F_TRUE
+ZNEQU_end:
         pha
     nxt
     
@@ -444,6 +508,11 @@ RSHIFT_loop:
     
     dconst CELL,4,,,$02
     
+    dword CELLS,5,,
+        .wp CELL
+        .wp MUL
+    .wp EXIT
+    
     dcode !,1,,POKE
         lda $03, s
         ldy #$0000
@@ -482,9 +551,33 @@ RSHIFT_loop:
     .wp EXIT
     
     dvar STATE,5,,,
-    dvar HERE,4,,,here_pos
+    dvar DP,2,,,here_pos
+    
+    dword HERE,4,,
+        .wp DP
+        .wp PEEK
+    .wp EXIT
+    
     dvar LATEST,6,,,name_WORDS
     dvar BASE,4,,,10
+    
+    dword DECIMAL,7,,
+        .lit 10
+        .wp BASE
+        .wp POKE
+    .wp EXIT
+    
+    dword HEX,3,,
+        .lit 16
+        .wp BASE
+        .wp POKE
+    .wp EXIT
+    
+    dword BIN,3,,
+        .lit 2
+        .wp BASE
+        .wp POKE
+    .wp EXIT
     
     dcode >R,2,,TOR
         pla
@@ -515,15 +608,17 @@ RSHIFT_loop:
         rla
     nxt
     
-    dword MEMTEST,7,F_HIDDEN,
+    dword MEMTEST,7,,
         .wp DUP ; address address
         .wp PEEK ; address old-value
         .wp SWAP ; old-value address
         .wp TRUE ; old-value address $ffff
         .wp OVER ; old-value address $ffff address
-        .wp POKE ; old-value address
+        .wp POKEBYTE ; old-value address
         .wp DUP ; old-value address address
-        .wp PEEK ; old-value address result
+        .wp PEEKBYTE ; old-value address result
+        .wp DUP
+        .wp JOIN
         .wp SWAP ; old-value result address
         .wp ROT ; result address old-value
         .wp POKE ; result
@@ -587,8 +682,7 @@ FREE_end:
     .wp EXIT
     
     dword COLD,4,,
-        ; print welcome messages, etc.
-        
+        .wp DECIMAL
         .wp GETXY
         .wp DROP
         .wp ZBRANCH
@@ -607,23 +701,35 @@ COLD_a:
         .wp TYPE
         .wp CR
         
-        .wp QUIT
+        .wp ABORT
         
-COLD_linea: db 'RCOS v0.1 alpha'
+COLD_linea: db 'RCOS v0.5 alpha'
 COLD_lineb: db 'bytes free.'
+
+    dword ABORT,5,,
+        .lit 2
+        .wp CURSOR
+        .wp SPRST
+        .wp QUIT
 
     dword QUIT,4,,
         .wp RPRST
+        .lit 0
+        .wp STATE
+        .wp POKE
 QUIT_loop:
         .wp CR        
-        .lit $3E ; show '> ' prompt
-        .wp EMIT
-        .lit $20
-        .wp EMIT
+        .wp STATE
+        .wp PEEK
+        .wp ZBRANCH
+        .wp QUIT_pis
+        .wp BRANCH
+        .wp QUIT_pcs
+QUIT_cont:
         
         .lit $80
         .lit $80
-        .wp READLINE ; read into address $80, max length $80
+        .wp ACCEPT ; read into address $80, max length $80
         
         .lit $80
         .wp SWAP
@@ -636,10 +742,25 @@ QUIT_loop:
         .wp BRANCH ; loop infinitely
         .wp QUIT_loop ; ($fffa = -6)
         
+QUIT_pis:
+        .lit QUIT_prompta
+        .lit 2
+        .wp TYPE
+        .wp BRANCH
+        .wp QUIT_cont
+QUIT_pcs:
+        .lit QUIT_promptb
+        .lit 9
+        .wp TYPE
+        .wp BRANCH
+        .wp QUIT_cont
+        
 QUIT_ok: db ' ok'
+QUIT_prompta: db '> '
+QUIT_promptb: db 'compile\: '
 
     dconst TRUE,4,,,_F_TRUE
-    dconst FALSE,4,,,_F_FALSE
+    dconst FALSE,5,,,_F_FALSE
 
     dcode BRANCH,6,,
         nxa
@@ -706,7 +827,31 @@ SKIP_no:
         .wp TRUE
     .wp EXIT
     
+    dword ?COMPILE-ONLY,13,,ISCOMPONLY ; ( address -- cond )
+        .wp INCRTWO
+        .wp PEEK
+        .lit F_COMPILEONLY
+        .wp AND
+        .wp ZNEQU
+    .wp EXIT
+    
+    dword ?IMMEDIATE,10,,ISIMMEDIATE ; ( address -- cond )
+        .wp INCRTWO
+        .wp PEEK
+        .lit F_IMMED
+        .wp AND
+        .wp ZNEQU
+    .wp EXIT
+    
     dword INTERPRET,9,, ; ( address length -- )
+    
+        .lit $20
+        .wp PEEK
+        .wp TOR
+        .lit $22
+        .wp PEEK
+        .wp TOR
+    
         .wp OVER
         .lit $20
         .wp POKE ; source address is at $20
@@ -722,24 +867,146 @@ INTERPRET_loop:
         .wp ZBRANCH
         .wp INTERPRET_end
         
-        .wp NUMBER
-        .wp PRINT_UNUM
-        .wp PRINT_UNUM
-        ;.wp TYPE
+        .wp TWODUP ; w-a w-l w-a w-l
         
+        .wp FIND ; w-a w-l addr
+        .wp DUP ; w-a w-l addr addr
+        .wp ZBRANCH ; w-a w-l addr
+        .wp INTERPRET_wordnotfound
+        
+        .wp DUP ; w-a w-l addr addr
+        .wp ISCOMPONLY ; w-a w-l addr cond
+        .wp STATE
+        .wp PEEK ; w-a w-l addr cond state
+        .wp ZEQU
+        .wp AND ; w-a w-l addr cond
+        .wp INVERT
+        .wp ZBRANCH ; w-a w-l addr
+        .wp INTERPRET_throwic
+        
+        .wp NIP ; w-a addr
+        .wp NIP ; addr
+        
+        .wp DUP
+        .wp ISIMMEDIATE
+        .wp STATE
+        .wp PEEK
+        .wp ZEQU
+        .wp OR
+        .wp ZBRANCH
+        .wp INTERPRET_cword
+        
+        .wp TCFA ; addr
+        .wp EXECUTE
+        
+INTERPRET_cword_return:
         .wp BRANCH
         .wp INTERPRET_loop
         
+INTERPRET_wordnotfound:
+        
+        .wp DROP ; w-a w-l
+        .wp TWODUP ; w-a w-l w-a w-l
+        .wp NUMBER ; w-a w-l result upcc
+        .wp ZEQU ; w-a w-l result cond
+        .wp ZBRANCH ; w-a w-l result
+        .wp INTERPRET_notanumber
+        
+        .wp NIP ; w-a result
+        .wp NIP ; result
+        
+        .wp STATE
+        .wp PEEK
+        .wp ZBRANCH
+        .wp INTERPRET_compilenum_ret
+        .wp BRANCH
+        .wp INTERPRET_compilenum
+INTERPRET_compilenum_ret:
+        
+        .wp BRANCH
+        .wp INTERPRET_loop
+
+INTERPRET_notanumber:
+        .wp DROP
+        .lit INTERPRET_texta
+        .lit 15
+        .wp TYPE
+        .wp TYPE
+        .wp ABORT
+        
 INTERPRET_end:
         .wp TWODROP
+        
+        .wp DEPTH
+        .lit 0
+        .wp LT
+        .wp ZBRANCH
+        .wp INTERPRET_checka
+        .lit INTERPRET_textb
+        .lit 11
+        .wp TYPE
+        .wp ABORT
+        
+INTERPRET_checka:
+
+        .wp DEPTH
+        .lit 127
+        .wp GT
+        .wp ZBRANCH
+        .wp INTERPRET_checkb
+        .lit INTERPRET_textc
+        .lit 14
+        .wp TYPE
+        .wp ABORT
+        
+INTERPRET_checkb: ; normal exit
+        .wp FROMR
+        .lit $22
+        .wp POKE
+        .wp FROMR
+        .lit $20
+        .wp POKE
     .wp EXIT
+
+INTERPRET_cword:
+        .wp TCFA
+        .wp COMMA
+        .wp BRANCH
+        .wp INTERPRET_cword_return
+
+INTERPRET_compilenum:
+        .lit LIT
+        .wp COMMA
+        .wp COMMA
+        .wp BRANCH
+        .wp INTERPRET_compilenum_ret
+        
+INTERPRET_throwic:
+        .wp DROP
+        .lit INTERPRET_textd
+        .lit 32
+        .wp TYPE
+        .wp TYPE
+        .wp ABORT
+    
+INTERPRET_texta: db 'Unknown Token\: '
+INTERPRET_textb: db 'Stack Empty'
+INTERPRET_textc: db 'Stack Overflow'
+INTERPRET_textd: db 'Interpreting compile-only word\: '
     
     dword (GCL),5,F_HIDDEN,GCL
         .lit $20
         .wp PEEKINCR
     .wp EXIT
     
-    dword WORD,4,, ; ( -- word-address word-length )
+    dword WORD,4,,
+        .wp BL
+        .wp PARSE
+    .wp EXIT
+    
+    dword PARSE,5,, ; ( delimiter-char -- word-address word-length )
+        .lit $28
+        .wp POKEBYTE
 WORD_loop_a:
         .wp GCL
         .wp DUP
@@ -771,7 +1038,8 @@ WORD_continue:
         
         .wp GCL
         .wp PEEKBYTE
-        .wp BL
+        .lit $28
+        .wp PEEKBYTE
         .wp EQU
         .wp ZBRANCH
         .wp WORD_noblank_b
@@ -808,6 +1076,19 @@ WORD_noblank_b:
 KD_nooffset:
     .wp EXIT
     
+    dword DIGIT>KEY,9,,DIGITTOKEY
+        .wp DUP
+        .lit 9
+        .wp GT
+        .wp ZBRANCH
+        .wp DK_nooffset
+        .lit 7
+        .wp ADD
+DK_nooffset:
+        .lit $30
+        .wp ADD
+    .wp EXIT
+    
     dword NUMBER,6,, ; ( word-address word-length -- result upcc )
         .lit 0
         .lit $26
@@ -835,6 +1116,13 @@ KD_nooffset:
         .wp NUMBER_notneg
         .wp GDL
         .wp DROP ; skip char from parsing
+        .wp TOR
+        .wp TOR
+        .wp TOR
+        .wp DECR
+        .wp FROMR
+        .wp FROMR
+        .wp FROMR
 NUMBER_notneg:
         
         .wp TOR ; save whether the number should be negative for the end
@@ -860,13 +1148,13 @@ NUMBER_loop:
         .wp KEYTODIGIT ; w-a base newv base digit
         .wp DUP ; w-a base newv base digit digit
         .wp ZGE
-        .wp ZBRANCH
-        .wp NUMBER_invalidchar
+        .wp ZBRANCH ; w-a base newv base digit
+        .wp NUMBER_invalidchara
         .wp DUP ; w-a base newv base digit digit
         .wp NROT ; w-a base newv digit base digit
         .wp GT
-        .wp ZBRANCH
-        .wp NUMBER_invalidchar
+        .wp ZBRANCH ; w-a base newv digit
+        .wp NUMBER_invalidcharb
         
         .wp ADD ; w-a base newv+digit
         .lit $26
@@ -900,7 +1188,9 @@ NUMBER_zerolength:
         .lit 0
     .wp EXIT
     
-NUMBER_invalidchar:
+NUMBER_invalidchara:
+        .wp NIP
+NUMBER_invalidcharb:
         .wp TWODROP ; w-a base
         .wp TWODROP ; 
         .wp FROMR ; w-l
@@ -910,6 +1200,142 @@ NUMBER_invalidchar:
         .lit $26
         .wp PEEK ; r-c result
         .wp SWAP ; result r-c
+    .wp EXIT
+    
+    dword >CFA,4,,TCFA
+        .lit 2
+        .wp ADD
+        .wp DUP
+        .wp PEEK
+        .lit F_LENMASK
+        .wp AND
+        .wp ADD
+        .wp INCR
+    .wp EXIT
+    
+    dword >DFA,4,,TDFA
+        .wp TCFA
+        .lit 3
+        .wp ADD
+    .wp EXIT
+    
+    dword FIND,4,, ; ( word-address word-length -- address )
+        .wp LATEST
+        .wp PEEK ; w-a w-l addr
+        
+FIND_loop:
+
+        .wp DUP
+        .wp ZNEQU
+        .wp ZBRANCH
+        .wp FIND_notfound
+        
+        .wp DUP ; w-a w-l addr addr
+        .wp INCRTWO
+        .wp PEEKBYTE ; w-a w-l addr flags
+        .lit F_LENMASK
+        .lit F_HIDDEN
+        .wp OR ; w-a w-l addr flags mask
+        .wp AND ; w-a w-l addr length
+        .wp ROT ; w-a addr length w-l
+        .wp DUP ; w-a addr length w-l w-l
+        .wp ROT ; w-a addr w-l w-l length
+        .wp EQU
+        .wp ZBRANCH ; w-a addr w-l
+        .wp FIND_notequal
+        
+        .wp TOR ; w-a addr
+        .wp TWODUP ; w-a addr w-a addr
+        .lit 3
+        .wp ADD
+        .wp STRCMP ; w-a addr len
+        .wp FROMR ; w-a addr len w-l
+        .wp DUP ; w-a addr len w-l w-l
+        .wp ROT ; w-a addr w-l w-l len
+        .wp LE
+        .wp ZBRANCH ; w-a addr w-l
+        .wp FIND_notequal
+        
+        ; Found
+        
+        .wp DROP ; w-a addr
+        .wp NIP ; addr
+    .wp EXIT
+        
+FIND_notequal:
+        .wp SWAP
+        .wp PEEK
+        .wp BRANCH
+        .wp FIND_loop
+    .wp EXIT
+    
+FIND_notfound:
+        .wp DROP ; w-a w-l
+        .wp TWODROP ;
+        .lit 0
+    .wp EXIT
+    
+    dword ('),3,,_HTICK
+        .wp WORD
+        .wp TWODUP
+        .wp FIND
+        .wp DUP
+        .wp ZBRANCH
+        .wp TICK_notfound
+        .wp NIP
+        .wp NIP
+    .wp EXIT
+    
+    dword ',1,,_TICK
+        .wp _HTICK
+        .wp TCFA
+    .wp EXIT
+    
+TICK_notfound:
+        .wp DROP
+        .lit INTERPRET_texta
+        .lit 15
+        .wp TYPE
+        .wp TYPE
+        .wp ABORT
+    .wp EXIT
+    
+    dword STRCMP,6,, ; ( addr1 addr2 -- matching-length )
+        .wp TWODUP
+        .wp NEQU
+        .wp ZBRANCH
+        .wp STRCMP_equaddr
+        
+        .lit 0
+        .wp TOR
+        
+STRCMP_loop:
+        
+        .wp TWODUP ; addr1 addr2 addr1 addr2
+        .wp RFETCH ; addr1 addr2 addr1 addr2 index
+        .wp ADD ; addr1 addr2 addr1 loc2
+        .wp PEEKBYTE ; addr1 addr2 addr1 value2
+        .wp SWAP ; addr1 addr2 value2 addr1
+        .wp RFETCH ; addr1 addr2 value2 addr1 index
+        .wp ADD ; addr1 addr2 value2 loc1
+        .wp PEEKBYTE ; addr1 addr2 value2 value1
+        .wp EQU
+        .wp ZBRANCH ; addr1 addr2
+        .wp STRCMP_noequ
+        .wp FROMR
+        .wp INCR
+        .wp TOR
+        .wp BRANCH
+        .wp STRCMP_loop
+    
+STRCMP_noequ:
+        .wp TWODROP
+        .wp FROMR
+    .wp EXIT
+    
+STRCMP_equaddr:
+        .wp TWODROP
+        .lit $ffff
     .wp EXIT
     
     dword SPLIT,5,,
@@ -930,11 +1356,344 @@ NUMBER_invalidchar:
         .wp OR
     .wp EXIT
     
+    dcode EXECUTE,7,,
+        rts
+    
+    dword ALLOT,5,, ; ( length -- addr )
+        .wp DUP
+        .wp FREE
+        .wp SWAP
+        .wp SUB
+        .wp ZGE
+        .wp ZBRANCH
+        .wp ALLOT_outofmemory
+        
+        .wp HERE
+        .wp TUCK
+        .wp ADD
+        .wp DP
+        .wp POKE
+    .wp EXIT
+    
+ALLOT_str: db 'Out of memory'
+    
+ALLOT_outofmemory:
+        .wp DROP
+        .lit ALLOT_str
+        .lit 13
+        .wp TYPE
+    .wp ABORT ; reset execution
+    
+    dword MEMCPY,6,, ; ( source target length -- )
+        .wp TOR
+        
+MEMCPY_loop:
+        .wp TWODUP ; src trg src trg
+        .wp RFETCH ; src trg src trg i
+        .wp ADD ; src trg src trgaddr
+        .wp SWAP ; src trg trgaddr src
+        .wp RFETCH
+        .wp ADD ; src trg trgaddr srcaddr
+        .wp PEEKBYTE ; src trg trgaddr value
+        .wp SWAP
+        .wp POKEBYTE ; src trg
+        
+        .wp FROMR ; src trg i
+        .wp DUP
+        .wp ZBRANCH
+        .wp MEMCPY_end
+        .wp DECR
+        .wp TOR
+        .wp BRANCH
+        .wp MEMCPY_loop
+MEMCPY_end:
+        .wp DROP
+        .wp TWODROP
+        
+    .wp EXIT
+    
+    dword HIDE,4,,
+        .wp LATEST
+        .wp PEEK
+        .wp INCRTWO
+        .wp DUP
+        .wp PEEKBYTE
+        .lit F_HIDDEN
+        .wp OR
+        .wp SWAP
+        .wp POKEBYTE
+    .wp EXIT
+    
+    dword REVEAL,6,,
+        .wp LATEST
+        .wp PEEK
+        .wp INCRTWO
+        .wp DUP
+        .wp PEEKBYTE
+        .lit F_HIDDEN
+        .wp INVERT
+        .wp AND
+        .wp SWAP
+        .wp POKEBYTE
+    .wp EXIT
+    
+    dword IMMEDIATE,9,F_IMMED,
+        .wp LATEST
+        .wp PEEK
+        .wp INCRTWO
+        .wp DUP
+        .wp PEEKBYTE
+        .lit F_IMMED
+        .wp OR
+        .wp SWAP
+        .wp POKEBYTE
+    .wp EXIT
+    
+    dword COMPILE-ONLY,12,F_IMMED,COMPILEONLY
+        .wp LATEST
+        .wp PEEK
+        .wp INCRTWO
+        .wp DUP
+        .wp PEEKBYTE
+        .lit F_COMPILEONLY
+        .wp OR
+        .wp SWAP
+        .wp POKEBYTE
+    .wp EXIT
+    
+    dword HEADER,6,,
+        .wp WORD ; w-a w-l
+        .lit F_LENMASK
+        .wp AND
+        .wp HERE ; w-a w-l here
+        .wp LATEST
+        .wp PEEK ; w-a w-l here latest
+        .wp COMMA ; w-a w-l here
+        .wp LATEST 
+        .wp POKE ; w-a w-l
+        .wp DUP ; w-a w-l w-l
+        .lit F_HIDDEN
+        .wp OR
+        .wp CCOMMA ; w-a w-l
+        .wp DUP ; w-a w-l w-l
+        .wp ALLOT ; w-a w-l here
+        .wp SWAP ; w-a here w-l
+        .wp MEMCPY
+    .wp EXIT
+    
+    dword \,,1,,COMMA
+        .wp HERE
+        .wp POKE
+        .wp CELL
+        .wp ALLOT
+        .wp DROP
+    .wp EXIT
+    
+    dword C\,,2,,CCOMMA
+        .wp HERE
+        .wp POKEBYTE
+        .lit 1
+        .wp ALLOT
+        .wp DROP
+    .wp EXIT
+    
+    dword CREATE,6,,
+        .wp HEADER
+        .wp REVEAL
+        .lit $22
+        .wp CCOMMA
+        .lit DOVAR
+        .wp COMMA
+    .wp EXIT
+    
+    dword VARIABLE,8,,
+        .wp CREATE
+        .lit 0
+        .wp COMMA
+    .wp EXIT
+    
+    dword CONSTANT,8,,
+        .wp HEADER
+        .wp REVEAL
+        .lit $22
+        .wp CCOMMA
+        .lit DOCON
+        .wp COMMA
+        .wp COMMA
+    .wp EXIT
+    
+    dword ],1,F_IMMED,RBRAC
+        .lit 1
+        .wp STATE
+        .wp POKE
+    .wp EXIT
+    
+    dword [,1,F_IMMED,LBRAC
+        .lit 0
+        .wp STATE
+        .wp POKE
+    .wp EXIT
+    
+    dword \:,1,,COLON
+        .wp HEADER
+        .lit $22
+        .wp CCOMMA
+        .lit DOCOL
+        .wp COMMA
+        .wp RBRAC
+    .wp EXIT
+    
+    dword \;,1,F_IMMED+F_COMPILEONLY,SEMICOLON
+        .lit EXIT
+        .wp COMMA
+        .wp REVEAL
+        .wp LBRAC
+    .wp EXIT
+    
+    dword LITERAL,7,F_IMMED+F_COMPILEONLY,
+        .lit LIT
+        .wp COMMA
+        .wp COMMA
+    .wp EXIT
+    
+    dword CHAR,4,,
+        .wp WORD
+        .wp DROP
+        .wp PEEKBYTE
+    .wp EXIT
+    
+    dword [COMPILE],9,F_IMMED+F_COMPILEONLY,COMPILEB
+        .wp _HTICK
+        .wp TCFA
+        .wp COMMA
+    .wp EXIT
+    
+    dword RECURSE,7,F_IMMED+F_COMPILEONLY,
+        .wp LATEST
+        .wp PEEK
+        .wp TCFA
+        .wp COMMA
+    .wp EXIT
+    
+    dword IF,2,F_IMMED+F_COMPILEONLY,
+        .lit ZBRANCH
+        .wp COMMA
+        .wp HERE
+        .lit 0
+        .wp COMMA
+    .wp EXIT
+    
+    dword THEN,4,F_IMMED+F_COMPILEONLY,
+        .wp HERE
+        .wp SWAP
+        .wp POKE
+    .wp EXIT
+    
+    dword ELSE,4,F_IMMED+F_COMPILEONLY,
+        .lit BRANCH
+        .wp COMMA
+        .wp HERE
+        .lit 0
+        .wp COMMA
+        .wp SWAP
+        .wp THEN
+    .wp EXIT
+    
+    dword BEGIN,5,F_IMMED+F_COMPILEONLY,
+        .wp HERE
+    .wp EXIT
+    
+    dword UNTIL,5,F_IMMED+F_COMPILEONLY,
+        .lit ZBRANCH
+        .wp COMMA
+        .wp COMMA
+    .wp EXIT
+    
+    dword AGAIN,5,F_IMMED+F_COMPILEONLY,
+        .lit BRANCH
+        .wp COMMA
+        .wp COMMA
+    .wp EXIT
+    
+    dword UNLESS,6,F_IMMED+F_COMPILEONLY,
+        .lit ZNEQU
+        .wp COMMA
+        .lit IF
+        .wp COMMA
+    .wp EXIT
+    
+    dword WHILE,5,F_IMMED+F_COMPILEONLY,
+        .lit ZBRANCH
+        .wp COMMA
+        .wp HERE
+        .lit 0
+        .wp COMMA
+    .wp EXIT
+    
+    dword REPEAT,6,F_IMMED+F_COMPILEONLY,
+        .lit BRANCH
+        .wp COMMA
+        .wp SWAP
+        .wp COMMA
+        .wp HERE
+        .wp SWAP
+        .wp POKE
+    .wp EXIT
+    
+    dword \\,1,F_IMMED,COMMENT
+        .lit $FF
+        .wp PARSE
+        .wp TWODROP
+    .wp EXIT
+    
+    dword (,1,F_IMMED,PAREN
+        .lit $29
+        .wp PARSE
+        .wp TWODROP
+    .wp EXIT
+    
+    dcode LITSTRING,9,F_COMPILEONLY+F_HIDDEN,
+        nxa
+        tix
+        phx
+        pha
+        stx $29
+        adc $29
+        tax
+        txi
+    nxt
+    
+    dword S",2,F_IMMED+F_COMPILEONLY,PUTSTR
+        .lit LITSTRING
+        .wp COMMA
+        .lit $22
+        .wp PARSE ; addr len
+        .wp DUP
+        .wp COMMA
+        .wp DUP ; addr len len
+        .wp ALLOT ; addr len here 
+        .wp SWAP ; addr here len
+        .wp MEMCPY
+    .wp EXIT
+    
+    dword .",2,F_IMMED+F_COMPILEONLY,PRTSTR
+        .wp PUTSTR
+        .lit TYPE
+        .wp COMMA
+    .wp EXIT
+    
+    dword .(,2,F_IMMED,PRGSTR
+        .lit $29
+        .wp PARSE
+        .wp TYPE
+    .wp EXIT
+    
     dcode HALT,4,,
         stp
+    nxt
 
-    dvar TERMADDR,8,,,1
-    dvar DISKADDR,8,,,2
+    dvar TERMADDR,8,,,
+    dvar DISKADDR,8,,,
     dvar IOXADDR,7,,,3
 
     dcode BA!,3,,BUS_SETADDR
@@ -956,6 +1715,30 @@ NUMBER_invalidchar:
         mmu $81
         pha
     nxt
+    
+    dword BUS!,4,,BUS_POKE
+        .wp BUS_GETWIN
+        .wp ADD
+        .wp POKE
+    .wp EXIT
+    
+    dword BUS@,4,,BUS_PEEK
+        .wp BUS_GETWIN
+        .wp ADD
+        .wp PEEK
+    .wp EXIT
+    
+    dword BUSC!,5,,BUS_POKEBYTE
+        .wp BUS_GETWIN
+        .wp ADD
+        .wp POKEBYTE
+    .wp EXIT
+    
+    dword BUSC@,5,,BUS_PEEKBYTE
+        .wp BUS_GETWIN
+        .wp ADD
+        .wp PEEKBYTE
+    .wp EXIT
 
     dconst BL,2,,,_F_BL
     dconst RETURN,6,,,_F_RETURN
@@ -966,7 +1749,7 @@ NUMBER_invalidchar:
         .wp EMIT
     .wp EXIT
     
-    dcode BINDTERM,8,,
+    dcode BINDTERM,8,F_HIDDEN,
         jsr bind_term
     nxt
     
@@ -986,10 +1769,10 @@ NUMBER_invalidchar:
         tax
         clc
         adc #$10
-        sta $00
-        stz $01
+        sta $02
+        stz $03
         pla ; get char
-        sta ($0000), y
+        sta ($0002), y
         pla ; throw high bytes away
         txa
         inc a
@@ -1045,7 +1828,40 @@ SCROLL_nocursor:
         rep #$20
     nxt
     
-    dword TYPE,4,,
+    dword PAGE,4,,
+        .wp BINDTERM
+        
+        .lit $20
+        .lit $08
+        .wp BUS_POKEBYTE
+        .lit $00
+        .lit $0A
+        .wp BUS_POKEBYTE
+        .lit $00
+        .lit $0B
+        .wp BUS_POKEBYTE
+        .lit 80
+        .lit $0C
+        .wp BUS_POKEBYTE
+        .lit 50
+        .lit $0D
+        .wp BUS_POKEBYTE
+        .lit 1
+        .lit $07
+        .wp BUS_POKEBYTE
+        
+        .lit 0
+        .lit $01
+        .wp BUS_POKE
+        
+        .wp TICK
+    .wp EXIT
+    
+    dword TYPE,4,, ; ( address length -- )
+        .wp DUP
+        .wp ZBRANCH
+        .wp TYPE_zerolength
+        
         .lit 0
 TYPE_loop:
         .wp TOR
@@ -1062,8 +1878,9 @@ TYPE_loop:
         .wp EQU
         .wp ZBRANCH
         .wp TYPE_loop
-        .wp TWODROP
         .wp DROP
+TYPE_zerolength:
+        .wp TWODROP
     .wp EXIT
     
     dword XY@,3,,GETXY
@@ -1084,6 +1901,12 @@ TYPE_loop:
         .wp POKE
     .wp EXIT
     
+    dword CURSOR,6,,
+        .wp BINDTERM
+        .lit 3
+        .wp BUS_POKEBYTE
+    .wp EXIT
+    
     dcode KEY,3,,
         mmu $81
         tax
@@ -1102,7 +1925,7 @@ KEY_check:
         pha
     nxt
 
-    dword READ-LINE,9,,READLINE ; ( c-addr maxlength -- read )
+    dword ACCEPT,6,,ACCEPT ; ( c-addr maxlength -- read )
         .wp TOR
         .wp TOR
         
@@ -1173,7 +1996,7 @@ RL_c:
         .wp RL_loop
     ;.wp EXIT
     
-    dword U.,2,,PRINT_UNUM
+    dword NU.,3,,PRINT_UNUM_NOSPACE
         .wp DUP
         .wp TOR
         .wp BASE
@@ -1187,8 +2010,7 @@ PN_loop:
         .wp SWAP ; counter int
         .wp RFETCH ; counter int base
         .wp UDIVMOD ; counter result mod
-        .lit $30 ; counter result mod offset
-        .wp ADD ; counter result char
+        .wp DIGITTOKEY ; counter result char
         .wp ROT ; result char counter
         .wp DUP ; result char counter counter
         .lit $7f ; result char counter counter $7f
@@ -1215,38 +2037,172 @@ PN_end:
         .wp SWAP
         
         .wp TYPE
+    .wp EXIT
+    
+    dword U.,2,,PRINT_UNUM
+        .wp PRINT_UNUM_NOSPACE
         .wp SPACE
     .wp EXIT
 
+    dword N.,2,,PRINT_NUM_NOSPACE
+        .wp DUP
+        .wp ZLT
+        .wp ZBRANCH
+        .wp PN_notneg
+        .lit $2d
+        .wp EMIT
+        .wp NEGATE
+PN_notneg:
+        .wp PRINT_UNUM_NOSPACE
+    .wp EXIT
+    
+    dword .,1,,PRINT_NUM
+        .wp PRINT_NUM_NOSPACE
+        .wp SPACE
+    .wp EXIT
+    
+    dword .S,2,,PRINT_STACK
+        .lit $3c
+        .wp EMIT
+        .wp DEPTH
+        .wp PRINT_UNUM_NOSPACE
+        .lit $3e
+        .wp EMIT
+        .wp SPACE
+        
+        .wp DEPTH
+        .wp ZBRANCH
+        .wp PS_nostack
+        
+        .wp SPORIG
+        .wp DECR
+        
+        .wp DEPTH
+        .wp DECR
+        
+PS_loop:
+        .wp TOR
+        
+        .wp DUP
+        .wp PRTADDR
+        .wp DECRTWO
+        
+        .wp FROMR
+        .wp DECR
+        .wp DUP
+        .wp ZBRANCH
+        .wp PS_end
+        .wp BRANCH
+        .wp PS_loop
+PS_end:
+        .wp TWODROP
+PS_nostack:
+    .wp EXIT
+    
+    dword FORGET,6,,
+        .wp _HTICK
+        .wp DUP
+        .wp PEEK
+        .wp LATEST
+        .wp POKE
+        .wp DP
+        .wp POKE
+    .wp EXIT
+    
+    dword ['],3,F_IMMED+F_COMPILEONLY,CLIT
+        .lit LIT
+        .wp COMMA
+    .wp EXIT
+    
+    dword POSTPONE,8,F_IMMED+F_COMPILEONLY,
+        .wp _HTICK
+        .wp DUP
+        .wp ISIMMEDIATE
+        .wp ZBRANCH
+        .wp POSTPONE_notimmed
+        .wp TCFA
+        .wp COMMA
+    .wp EXIT
+POSTPONE_notimmed:
+        ; TODO, not implemented
+        .lit str
+        .lit 15
+        .wp TYPE
+        .wp ABORT
+    .wp EXIT
+    
+str: db 'Not implemented'
+
     dword ls,2,,
         .lit text_linux
-        .lit 31
+        .lit 32
         .wp TYPE
+        .wp SPACE
     .wp EXIT
     
     dword dir,3,,
         .lit text_linux
-        .lit 25
+        .lit 26
         .wp TYPE
         .lit text_windows
         .lit 8
         .wp TYPE
+        .wp SPACE
     .wp EXIT
     
-text_linux: db 'No dice buddy', $2C, ' this ain't Linux!'
+text_linux: db 'No dice buddy\, this ain't Linux!'
 text_windows: db 'Windows!'
     
     dword WORDS,5,,
-
+        .wp LATEST
+        .wp PEEK ; addr
+WORDS_loop:
+        
+        .wp DUP ; addr addr
+        .wp ZNEQU ; addr cond
+        .wp ZBRANCH ; addr
+        .wp WORDS_end
+        
+        .wp DUP ; addr addr
+        .wp INCRTWO ; addr flagaddr
+        .wp PEEKBYTE ; addr flags
+        .wp DUP ; addr flags flags
+        .lit F_HIDDEN
+        .wp AND ; addr flags hidden
+        .wp ZEQU
+        .wp ZBRANCH ; addr flags
+        .wp WORDS_hidden
+        .lit F_LENMASK
+        .wp AND ; addr length
+        .wp OVER ; addr length addr
+        .lit 3
+        .wp ADD ; addr length straddr
+        .wp SWAP ; addr straddr length
+        .wp TYPE
+        .wp SPACE
+WORDS_hidden_return:
+        .wp PEEK ; newaddr
+        .wp BRANCH
+        .wp WORDS_loop
+WORDS_end:
+        .wp DROP
     .wp EXIT
+    
+WORDS_hidden:
+        .wp DROP ; addr
+        .wp BRANCH
+        .wp WORDS_hidden_return
+    
 here_pos:
     
 section .text
 
-    ;lda $00
-    ;sta var_DISKADDR
-    ;lda $01
-    ;sta var_TERMADDR
+    sep #$20
+    lda $00
+    sta var_DISKADDR
+    lda $01
+    sta var_TERMADDR
+    rep #$20
 start:
     clc
     rep #$30

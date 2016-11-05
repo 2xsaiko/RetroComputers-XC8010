@@ -17,7 +17,7 @@ NXT ($02) - NExT word
 ENT ($22) - Enter word
 	RHI, I = PC + 2, PC = (PC)
 
-NXA ($42) - NeXt byte/word to Accumlator
+NXA ($42) - NeXt byte/word to Accumulator
 	A = (I), if M=0 then I = I + 1 else I = I + 2
 	example:
 		lda (regI)	; 16-bit word when M flag is set
@@ -129,7 +129,7 @@ TIX ($dc) - Transfer I to X
 ORA, AND, EOR, ADC, STA, LDA, CMP, SBC
 	Works like the standard 65816 r,S and (r,S),Y instructions just using R instead of S
 
-MUL - signed (c=0) or unsigned (c=1) MULltiply (16-bit * 16-bit)
+MUL - signed (c=0) or unsigned (c=1) MULtiply (16-bit * 16-bit)
 	supports BCD mode
 
 DIV - signed (c=0) or unsigned (c=1) DIVide (32-bit / 16-bit)
@@ -151,9 +151,4 @@ TDA - Transfer D to A
 PHD - PusH D to stack
 	
 PLD - PulL D from stack
-
-
-Known bugs:
-	- Stack pointers wrong (TSX,TXS) comparing it to a real 65xx based cpu
-	- the default SP is $0200 instead of $01ff
 

@@ -223,6 +223,9 @@ public class CPUXC8010 implements ICPU {
                 regY = popX();
                 updNZX(regY);
                 break;
+            case 0x7c: // jmp (abs, x)
+                pc = pcIX();
+                break;
             case 0x7d: // adc abs, x
                 _adc(peekM(pc2X()));
                 break;
@@ -631,20 +634,42 @@ public class CPUXC8010 implements ICPU {
 
     private void _mul(int data) {
         // TODO: Implement decimal mutliplication
-        if (isup(M)) {
-            int c = regA * data;
-            regA = c & 0xFF;
-            regD = (c >> 8) & 0xFF;
-            setFlags(N, c < 0);
-            setFlags(Z, c == 0);
-            setFlags(V, (c & 0xFFFF0000) != 0);
+        if (isup(C)) {
+            if (isup(M)) {
+                int c = regA * data;
+                regA = c & 0xFF;
+                regD = (c >> 8) & 0xFF;
+                setFlags(N, c < 0);
+                setFlags(Z, c == 0);
+                setFlags(V, (c & 0xFFFF0000) != 0);
+            } else {
+                long c = regA * data;
+                regA = (int) (c & 0xFFFF);
+                regD = (int) ((c >> 16) & 0xFFFF);
+                setFlags(N, c < 0);
+                setFlags(Z, c == 0);
+                setFlags(V, (c & 0xFFFFFFFF00000000L) != 0);
+            }
         } else {
-            long c = regA * data;
-            regA = (int) (c & 0xFFFF);
-            regD = (int) ((c >> 16) & 0xFFFF);
-            setFlags(N, c < 0);
-            setFlags(Z, c == 0);
-            setFlags(V, (c & 0xFFFFFFFF00000000L) != 0);
+            if (isup(M)) {
+                byte a = (byte) regA;
+                byte b = (byte) data;
+                int c = a * b;
+                regA = c & 0xFF;
+                regD = (c >> 8) & 0xFF;
+                setFlags(N, c < 0);
+                setFlags(Z, c == 0);
+                setFlags(V, (c & 0xFFFF0000) != 0);
+            } else {
+                short a = (short) regA;
+                short b = (short) regB;
+                long c = a * b;
+                regA = (int) (c & 0xFFFF);
+                regD = (int) ((c >> 16) & 0xFFFF);
+                setFlags(N, c < 0);
+                setFlags(Z, c == 0);
+                setFlags(V, (c & 0xFFFFFFFF00000000L) != 0);
+            }
         }
     }
 
@@ -656,18 +681,37 @@ public class CPUXC8010 implements ICPU {
             regD = 0;
             updNZ(regA);
         }
-        if (isup(M)) {
-            int a = regA;
-            regA = a / data;
-            regD = a % data;
-            updNZ(regA);
-            setFlags(V, regD != 0);
+
+        if (isup(C)) {
+            if (isup(M)) {
+                int a = regA;
+                regA = a / data;
+                regD = a % data;
+                updNZ(regA);
+                setFlags(V, regD != 0);
+            } else {
+                int a = regA;
+                regA = a / data;
+                regD = a % data;
+                updNZ(regA);
+                setFlags(V, regD != 0);
+            }
         } else {
-            int a = regA;
-            regA = a / data;
-            regD = a % data;
-            updNZ(regA);
-            setFlags(V, regD != 0);
+            if (isup(M)) {
+                byte a = (byte) regA;
+                byte b = (byte) data;
+                regA = a / b;
+                regD = a % b;
+                updNZ(regA);
+                setFlags(V, regD != 0);
+            } else {
+                short a = (short) regA;
+                short b = (short) data;
+                regA = a / b;
+                regD = a % b;
+                updNZ(regA);
+                setFlags(V, regD != 0);
+            }
         }
     }
 
