@@ -8,6 +8,21 @@
         .wp LIT
         .wp ${num}
     .endm
+    
+    .macro .compb num
+        .lit ${num}
+        .wp CCOMMA
+    .endm
+    
+    .macro .comp num
+        .lit ${num}
+        .wp COMMA
+    .endm
+    
+    .macro .clt num
+        .comp LIT
+        .comp ${num}
+    .endm
 
     .macro dcode [name],namelen,flags=0,[label]=${name}
         name_${label}:
@@ -589,6 +604,20 @@ RSHIFT_loop:
         pha
     nxt
     
+    dcode 2>R,3,,TWOTOR
+        pla
+        rha
+        pla
+        rha
+    nxt
+    
+    dcode 2R>,3,,TWOFROMR
+        rla
+        pha
+        rla
+        pha
+    nxt
+    
     dcode R@,2,,RFETCH
         lda $01, r
         pha
@@ -605,6 +634,11 @@ RSHIFT_loop:
     nxt
     
     dcode RDROP,5,,RDROP
+        rla
+    nxt
+    
+    dcode 2RDROP,6,,TWORDROP
+        rla
         rla
     nxt
     
@@ -625,56 +659,56 @@ RSHIFT_loop:
     .wp EXIT
     
     dword FREE,4,,
+        .lit $1FFF
+        
         .lit $2000
-        
-        .lit $2001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
+        .lit $3FFF
+        
         .lit $4000
-        
-        .lit $4001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
+        .lit $5FFF
+        
         .lit $6000
-        
-        .lit $6001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
+        .lit $7FFF
+        
         .lit $8000
-        
-        .lit $8001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
+        .lit $9FFF
+        
         .lit $a000
-        
-        .lit $a001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
+        .lit $BFFF
+        
         .lit $c000
-        
-        .lit $c001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
+        .lit $DFFF
+        
         .lit $e000
-        
-        .lit $e001
         .wp MEMTEST
         .wp ZBRANCH
         .wp FREE_end
         .wp DROP
-        .lit $0000
+        .lit $FFFF
         
 FREE_end:
         .wp HERE
@@ -975,8 +1009,7 @@ INTERPRET_cword:
         .wp INTERPRET_cword_return
 
 INTERPRET_compilenum:
-        .lit LIT
-        .wp COMMA
+        .comp LIT
         .wp COMMA
         .wp BRANCH
         .wp INTERPRET_compilenum_ret
@@ -1502,23 +1535,19 @@ MEMCPY_end:
         .wp REVEAL
         .lit $22
         .wp CCOMMA
-        .lit DOVAR
-        .wp COMMA
+        .comp DOVAR
     .wp EXIT
     
     dword VARIABLE,8,,
         .wp CREATE
-        .lit 0
-        .wp COMMA
+        .comp 0
     .wp EXIT
     
     dword CONSTANT,8,,
         .wp HEADER
         .wp REVEAL
-        .lit $22
-        .wp CCOMMA
-        .lit DOCON
-        .wp COMMA
+        .compb $22
+        .comp DOCON
         .wp COMMA
     .wp EXIT
     
@@ -1538,21 +1567,18 @@ MEMCPY_end:
         .wp HEADER
         .lit $22
         .wp CCOMMA
-        .lit DOCOL
-        .wp COMMA
+        .comp DOCOL
         .wp RBRAC
     .wp EXIT
     
     dword \;,1,F_IMMED+F_COMPILEONLY,SEMICOLON
-        .lit EXIT
-        .wp COMMA
+        .comp EXIT
         .wp REVEAL
         .wp LBRAC
     .wp EXIT
     
     dword LITERAL,7,F_IMMED+F_COMPILEONLY,
-        .lit LIT
-        .wp COMMA
+        .comp LIT
         .wp COMMA
     .wp EXIT
     
@@ -1576,11 +1602,9 @@ MEMCPY_end:
     .wp EXIT
     
     dword IF,2,F_IMMED+F_COMPILEONLY,
-        .lit ZBRANCH
-        .wp COMMA
+        .comp ZBRANCH
         .wp HERE
-        .lit 0
-        .wp COMMA
+        .comp 0
     .wp EXIT
     
     dword THEN,4,F_IMMED+F_COMPILEONLY,
@@ -1590,11 +1614,9 @@ MEMCPY_end:
     .wp EXIT
     
     dword ELSE,4,F_IMMED+F_COMPILEONLY,
-        .lit BRANCH
-        .wp COMMA
+        .comp BRANCH
         .wp HERE
-        .lit 0
-        .wp COMMA
+        .comp 0
         .wp SWAP
         .wp THEN
     .wp EXIT
@@ -1604,40 +1626,54 @@ MEMCPY_end:
     .wp EXIT
     
     dword UNTIL,5,F_IMMED+F_COMPILEONLY,
-        .lit ZBRANCH
-        .wp COMMA
+        .comp ZBRANCH
         .wp COMMA
     .wp EXIT
     
     dword AGAIN,5,F_IMMED+F_COMPILEONLY,
-        .lit BRANCH
-        .wp COMMA
+        .comp BRANCH
         .wp COMMA
     .wp EXIT
     
     dword UNLESS,6,F_IMMED+F_COMPILEONLY,
-        .lit ZNEQU
-        .wp COMMA
-        .lit IF
-        .wp COMMA
+        .comp ZNEQU
+        .comp IF
     .wp EXIT
     
     dword WHILE,5,F_IMMED+F_COMPILEONLY,
-        .lit ZBRANCH
-        .wp COMMA
+        .comp ZBRANCH
         .wp HERE
-        .lit 0
-        .wp COMMA
+        .comp 0
     .wp EXIT
     
     dword REPEAT,6,F_IMMED+F_COMPILEONLY,
-        .lit BRANCH
-        .wp COMMA
+        .comp BRANCH
         .wp SWAP
         .wp COMMA
         .wp HERE
         .wp SWAP
         .wp POKE
+    .wp EXIT
+    
+    dword DO,2,F_IMMED+F_COMPILEONLY,
+        .wp HERE
+        .comp TWOTOR
+    .wp EXIT
+    
+    dword +LOOP,5,F_IMMED+F_COMPILEONLY,PLUSLOOP
+        .comp TWOFROMR
+        .comp ROT
+        .comp ADD
+        .comp TWODUP
+        .comp EQU
+        .comp ZBRANCH
+        .wp COMMA
+        .comp TWODROP
+    .wp EXIT
+    
+    dword LOOP,4,F_IMMED+F_COMPILEONLY,
+        .clt 1
+        .wp PLUSLOOP
     .wp EXIT
     
     dword \\,1,F_IMMED,COMMENT
@@ -1664,8 +1700,7 @@ MEMCPY_end:
     nxt
     
     dword S",2,F_IMMED+F_COMPILEONLY,PUTSTR
-        .lit LITSTRING
-        .wp COMMA
+        .comp LITSTRING
         .lit $22
         .wp PARSE ; addr len
         .wp DUP
@@ -1678,8 +1713,7 @@ MEMCPY_end:
     
     dword .",2,F_IMMED+F_COMPILEONLY,PRTSTR
         .wp PUTSTR
-        .lit TYPE
-        .wp COMMA
+        .comp TYPE
     .wp EXIT
     
     dword .(,2,F_IMMED,PRGSTR
@@ -2110,8 +2144,7 @@ PS_nostack:
     .wp EXIT
     
     dword ['],3,F_IMMED+F_COMPILEONLY,CLIT
-        .lit LIT
-        .wp COMMA
+        .comp LIT
     .wp EXIT
     
     dword POSTPONE,8,F_IMMED+F_COMPILEONLY,
@@ -2152,6 +2185,49 @@ str: db 'Not implemented'
     
 text_linux: db 'No dice buddy\, this ain't Linux!'
 text_windows: db 'Windows!'
+
+    ; Redstone Port controls
+    
+    dword BINDIOX,7,F_HIDDEN,
+        .wp IOXADDR
+        .wp PEEK
+        .wp BUS_SETADDR
+    .wp EXIT
+
+    dword IOX!,4,,IOXPOKE
+        .wp BINDIOX
+        .lit 2
+        .wp BUS_POKE
+    .wp EXIT
+    
+    dword IOXO@,5,F_HIDDEN,IOXOPEEK
+        .wp BINDIOX
+        .lit 2
+        .wp BUS_PEEK
+    .wp EXIT
+    
+    dword IOX@,4,,IOXPEEK
+        .wp BINDIOX
+        .lit 0
+        .wp BUS_PEEK
+    .wp EXIT
+    
+    dword IOXSET,6,,
+        .wp IOXOPEEK
+        .wp OR
+        .wp IOXPOKE
+    .wp EXIT
+    
+    dword IOXRST,6,,
+        .wp NEGATE
+        .wp IOXOPEEK
+        .wp AND
+        .wp IOXPOKE
+    .wp EXIT
+    
+    ; Disk drive controls
+    
+    ; LOAD PP WIPE LIST BLOCK REVERT FLUSH SAVE" DISKNAME" 
     
     dword WORDS,5,,
         .wp LATEST
