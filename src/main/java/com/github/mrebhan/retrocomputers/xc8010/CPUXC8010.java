@@ -96,7 +96,7 @@ public class CPUXC8010 implements ICPU {
     @Override
     public void next() {
         int insn = pc1();
-        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
+//        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
         switch (insn) {
             case 0x00: // brk
                 push2(pc);
