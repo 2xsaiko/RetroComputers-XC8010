@@ -84,6 +84,14 @@ section dict
         pha
         rli
     nxt
+    
+    dcode DODOES,6,,
+        tix
+        phx
+        nxa
+        tax
+        txi
+    nxt
 
     dcode EXIT,4,,
         rli
@@ -548,16 +556,15 @@ RSHIFT_loop:
         .wp PRINT_UNUM
     .wp EXIT
     
-    dword C!,2,,POKEBYTE
-        .wp DUP
-        .wp PEEK
-        .wp SPLIT
-        .wp DROP
-        .wp ROT
-        .wp JOIN
-        .wp SWAP
-        .wp POKE
-    .wp EXIT
+    dcode C!,2,,POKEBYTE
+        lda $03, s
+        ldy #$0000
+        sep #$20
+        sta ($01, s), y
+        rep #$20
+        ply
+        ply
+    nxt
     
     dword C@,2,,PEEKBYTE
         .wp PEEK
@@ -1418,6 +1425,7 @@ ALLOT_outofmemory:
     .wp ABORT ; reset execution
     
     dword MEMCPY,6,, ; ( source target length -- )
+        .wp DECR
         .wp TOR
         
 MEMCPY_loop:
@@ -1656,6 +1664,17 @@ MEMCPY_end:
     .wp EXIT
     
     dword DO,2,F_IMMED+F_COMPILEONLY,
+        .lit 0
+        .wp HERE
+        .comp TWOTOR
+    .wp EXIT
+    
+    dword ?DO,3,F_IMMED+F_COMPILEONLY,QDO
+        .comp TWODUP
+        .comp NEQU
+        .comp ZBRANCH
+        .wp HERE
+        .comp 0
         .wp HERE
         .comp TWOTOR
     .wp EXIT
@@ -1669,6 +1688,15 @@ MEMCPY_end:
         .comp ZBRANCH
         .wp COMMA
         .comp TWODROP
+        .wp DUP
+        .wp ZBRANCH
+        .wp LOOP_noqdo
+        .wp HERE
+        .wp SWAP
+        .wp POKE
+    .wp EXIT
+LOOP_noqdo:
+        .wp DROP
     .wp EXIT
     
     dword LOOP,4,F_IMMED+F_COMPILEONLY,
@@ -2147,6 +2175,30 @@ PS_nostack:
         .comp LIT
     .wp EXIT
     
+    dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES ; DOES>NT WORK, wtf
+        ; when compiling the word (.wp) save the address of the code to execute
+        ; when executing the word (.comp) change the DOVAR of the new word to DODOES, and append the address gotten with .wp HERE
+        
+        .comp LIT
+        .wp HERE
+        .wp INCRTWO
+        .comp 0
+        
+        .comp COMMA
+        
+        .clt DODOES
+        .comp LATEST
+        .comp PEEK
+        .comp TCFA
+        .comp INCR
+        .comp POKE
+        
+        .comp EXIT
+        .wp HERE
+        .wp SWAP
+        .wp POKE
+    .wp EXIT
+    
     dword POSTPONE,8,F_IMMED+F_COMPILEONLY,
         .wp _HTICK
         .wp DUP
@@ -2227,7 +2279,123 @@ text_windows: db 'Windows!'
     
     ; Disk drive controls
     
-    ; LOAD PP WIPE LIST BLOCK REVERT FLUSH SAVE" DISKNAME" 
+    ; Disk commands:
+    ; 1: Read disk name
+    ; 2: Write disk name
+    ; 3: Read disk serial
+    ; 4: Read disk sector
+    ; 5: Write disk sector
+    ; 6: Clear sector buffer
+    
+    ; LOAD PP WIPE LIST BLOCK REVERT FLUSH SAVE"
+    
+    dword BINDDISK,8,F_HIDDEN,
+        .wp DISKADDR
+        .wp PEEK
+        .wp BUS_SETADDR
+    .wp EXIT
+    
+    dvar (BLKBUF),8,F_HIDDEN,BLKBUF_INT, ; 1024 byte disk block buffer
+    dword BLKBUF,6,,
+        .wp BLKBUF_INT
+        .wp PEEK
+        .wp ZBRANCH
+        .wp BLKBUF_allot
+        .wp BLKBUF_INT
+        .wp PEEK
+    .wp EXIT
+BLKBUF_allot:
+        .lit 1024
+        .wp ALLOT
+        .wp DUP
+        .wp BLKBUF_INT
+        .wp POKE
+    .wp EXIT
+    
+    dvar BLKNO,5,,,
+    dvar BLKINT,6,F_HIDDEN,,_F_TRUE
+    
+    dword DISKCMD,7,,
+        .wp BINDDISK
+        .lit $82
+        .wp BUS_POKEBYTE
+        .wp TICK
+    .wp EXIT
+    
+    dword CLDRBUF,7,F_HIDDEN,
+        .lit 6
+        .wp DISKCMD
+    .wp EXIT
+    
+    dword DISKNAME",9,,SET_DISKNAME
+        .wp CLDRBUF
+        .lit $22
+        .wp PARSE ; addr len
+        .wp TWODUP
+        .wp BUS_GETWIN
+        .wp SWAP
+        .wp MEMCPY
+        .lit 2
+        .wp DISKCMD
+    .wp EXIT
+    
+    dword BLOCK,5,,
+        .wp BLKNO
+        .wp POKE
+        .wp REVERT
+    .wp EXIT
+    
+    dword REVERT,6,, ; get 8 sectors (128 * 8 = 1024) into the buffer
+        .wp BINDDISK
+        .wp BLKNO
+        .wp PEEK
+        .lit 8
+        .wp MUL ; origin
+        
+        .lit 0
+REVERT_loop:
+        .wp TOR
+        .wp RFETCH ; origin i
+        .wp OVER ; origin i origin
+        .wp ADD ; origin current-sector
+        .lit $80
+        .wp BUS_POKE ; origin
+        .lit 4
+        .wp DISKCMD
+        
+        .wp BUS_GETWIN ; origin c-origin
+        .wp RFETCH
+        .lit 128
+        .wp UMUL
+        .wp BLKBUF
+        .wp ADD
+        .lit 128 ; origin c-origin c-target c-length
+        .wp MEMCPY ; origin
+        
+        .wp FROMR ; origin i
+        .wp INCR ; origin i+1
+        .wp DUP ; origin i i 
+        .lit 8
+        .wp LE ; origin i cond
+        .wp ZBRANCH ; origin i
+        .wp REVERT_end
+        .wp BRANCH
+        .wp REVERT_loop
+REVERT_end:
+        .wp TWODROP
+    .wp EXIT
+    
+    dword LIST,4,,
+        .wp BLOCK
+        .wp BASE
+        .wp PEEK
+        .wp DECIMAL
+        .lit 0
+LIST_loop:
+        
+        .wp BASE
+        .wp POKE
+    .wp EXIT
     
     dword WORDS,5,,
         .wp LATEST

@@ -96,7 +96,7 @@ public class CPUXC8010 implements ICPU {
     @Override
     public void next() {
         int insn = pc1();
-//        System.out.printf("%04x: %02x [SP: %04x RP: %04x]%n", pc - 1, insn, sp, rp);
+        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
         switch (insn) {
             case 0x00: // brk
                 push2(pc);
@@ -662,7 +662,7 @@ public class CPUXC8010 implements ICPU {
                 setFlags(V, (c & 0xFFFF0000) != 0);
             } else {
                 short a = (short) regA;
-                short b = (short) regB;
+                short b = (short) data;
                 long c = a * b;
                 regA = (int) (c & 0xFFFF);
                 regD = (int) ((c >> 16) & 0xFFFF);
