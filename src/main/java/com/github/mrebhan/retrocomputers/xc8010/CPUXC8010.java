@@ -96,7 +96,7 @@ public class CPUXC8010 implements ICPU {
     @Override
     public void next() {
         int insn = pc1();
-//        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
+        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
         switch (insn) {
             case 0x00: // brk
                 push2(pc);
@@ -170,6 +170,9 @@ public class CPUXC8010 implements ICPU {
                 regA = peekM(regI);
                 regI += isup(M) ? 1 : 2;
                 break;
+            case 0x43: // eor r, s
+                _eor(pc1S());
+                break;
             case 0x48: // pha
                 pushM(regA);
                 break;
@@ -193,7 +196,7 @@ public class CPUXC8010 implements ICPU {
             case 0x60: // rts
                 _rts();
                 break;
-            case 0x63: // adc s, r
+            case 0x63: // adc r, s
                 _adc(peekM(pc1S()));
                 break;
             case 0x64: // stz zp
@@ -504,6 +507,11 @@ public class CPUXC8010 implements ICPU {
         updNZ(regA);
     }
 
+    private void _eor(int data) {
+        regA ^= data & maskM();
+        updNZ(regA);
+    }
+
     private int _rol(int data) {
         int i = data << 1;
         if (isup(C)) i |= 0x0001;
@@ -675,11 +683,12 @@ public class CPUXC8010 implements ICPU {
 
     private void _div(int data) {
         // TODO: Implement decimal division
-        if ((data & maskM()) == 0) {
+        if (data == 0) {
             up(V);
             regA = 0;
             regD = 0;
             updNZ(regA);
+            return;
         }
 
         if (isup(C)) {

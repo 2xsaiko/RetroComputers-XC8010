@@ -51,7 +51,23 @@
             db ${value}, ^${value}
     .endm
 
-section dict
+section 0_strings
+
+    ALLOT_str: db 'Out of memory'
+    INTERPRET_texta: db 'Unknown Token\: '
+    INTERPRET_textb: db 'Stack Empty'
+    INTERPRET_textc: db 'Stack Overflow'
+    INTERPRET_textd: db 'Interpreting compile-only word\: '
+    QUIT_ok: db ' ok'
+    QUIT_prompta: db '> '
+    QUIT_promptb: db 'compile\: '
+    COLD_linea: db 'RCOS v0.5 alpha'
+    COLD_lineb: db 'bytes free.'
+    not_implemented: db 'Not implemented'
+    text_linux: db 'No dice buddy\, this ain't Linux!'
+    text_windows: db 'Windows!'
+    
+section 1_dict
 
     .set F_IMMED, $80
     .set F_HIDDEN, $40
@@ -83,14 +99,6 @@ section dict
         nxa
         pha
         rli
-    nxt
-    
-    dcode DODOES,6,,
-        tix
-        phx
-        nxa
-        tax
-        txi
     nxt
 
     dcode EXIT,4,,
@@ -478,35 +486,6 @@ ZLT_end:
 ABS_noaction:
     .wp EXIT
     
-    dcode LROTATE,7,,
-        clc
-        ply ; get amount to rot left
-        pla ; get number
-LROT_loop:
-        rol a
-        dey
-        bne LROT_loop
-        bcc LROT_end
-        inc a
-LROT_end:
-        pha
-    nxt
-    
-    dcode RROTATE,7,,
-        clc
-        ply ; get amount to rot right
-        pla ; get number
-RROT_loop:
-        ror a
-        dey
-        bne RROT_loop
-        bcc RROT_end
-        clc
-        adc #$8000
-RROT_end:
-        pha
-    nxt
-    
     dcode LSHIFT,6,,
         ply ; get amount to rot left
         pla ; get number
@@ -553,7 +532,7 @@ RSHIFT_loop:
     
     dword ?,1,,PRTADDR
         .wp PEEK
-        .wp PRINT_UNUM
+        .wp PRINT_NUM
     .wp EXIT
     
     dcode C!,2,,POKEBYTE
@@ -570,6 +549,11 @@ RSHIFT_loop:
         .wp PEEK
         .lit $FF
         .wp AND
+    .wp EXIT
+    
+    dword C?,2,,PRTBADDR
+        .wp PEEKBYTE
+        .wp PRINT_NUM
     .wp EXIT
     
     dvar STATE,5,,,
@@ -743,9 +727,6 @@ COLD_a:
         .wp CR
         
         .wp ABORT
-        
-COLD_linea: db 'RCOS v0.5 alpha'
-COLD_lineb: db 'bytes free.'
 
     dword ABORT,5,,
         .lit 2
@@ -795,10 +776,6 @@ QUIT_pcs:
         .wp TYPE
         .wp BRANCH
         .wp QUIT_cont
-        
-QUIT_ok: db ' ok'
-QUIT_prompta: db '> '
-QUIT_promptb: db 'compile\: '
 
     dconst TRUE,4,,,_F_TRUE
     dconst FALSE,5,,,_F_FALSE
@@ -1028,11 +1005,6 @@ INTERPRET_throwic:
         .wp TYPE
         .wp TYPE
         .wp ABORT
-    
-INTERPRET_texta: db 'Unknown Token\: '
-INTERPRET_textb: db 'Stack Empty'
-INTERPRET_textc: db 'Stack Overflow'
-INTERPRET_textd: db 'Interpreting compile-only word\: '
     
     dword (GCL),5,F_HIDDEN,GCL
         .lit $20
@@ -1415,8 +1387,6 @@ STRCMP_equaddr:
         .wp POKE
     .wp EXIT
     
-ALLOT_str: db 'Out of memory'
-    
 ALLOT_outofmemory:
         .wp DROP
         .lit ALLOT_str
@@ -1451,6 +1421,29 @@ MEMCPY_end:
         .wp DROP
         .wp TWODROP
         
+    .wp EXIT
+    
+    dword FILL,4,, ; ( byte target length -- )
+        .wp DECR
+        .wp TOR
+        
+FILL_loop:
+        .wp TWODUP ; dat trg dat trg
+        .wp RFETCH ; dat trg dat trg i
+        .wp ADD ; dat trg dat trgaddr
+        .wp POKEBYTE ; dat trg
+        
+        .wp FROMR ; dat trg i
+        .wp DUP
+        .wp ZBRANCH
+        .wp FILL_end
+        .wp DECR
+        .wp TOR
+        .wp BRANCH
+        .wp FILL_loop
+FILL_end:
+        .wp DROP
+        .wp TWODROP
     .wp EXIT
     
     dword HIDE,4,,
@@ -1702,6 +1695,21 @@ LOOP_noqdo:
     dword LOOP,4,F_IMMED+F_COMPILEONLY,
         .clt 1
         .wp PLUSLOOP
+    .wp EXIT
+    
+    dword TIMES,5,,
+        .wp _TICK
+        .wp SWAP
+TIMES_loop:
+        .wp ZBRANCH
+        .wp TIMES_end
+        .wp OVER
+        .wp EXECUTE
+        .wp DECR
+        .wp BRANCH
+        .wp TIMES_loop
+TIMES_end:
+        .wp TWODROP
     .wp EXIT
     
     dword \\,1,F_IMMED,COMMENT
@@ -2175,26 +2183,25 @@ PS_nostack:
         .comp LIT
     .wp EXIT
     
-    dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES ; DOES>NT WORK, wtf
-        ; when compiling the word (.wp) save the address of the code to execute
-        ; when executing the word (.comp) change the DOVAR of the new word to DODOES, and append the address gotten with .wp HERE
-        
-        .comp LIT
-        .wp HERE
-        .wp INCRTWO
-        .comp 0
-        
-        .comp COMMA
-        
-        .clt DODOES
-        .comp LATEST
-        .comp PEEK
-        .comp TCFA
-        .comp INCR
-        .comp POKE
-        
+    dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES
+        .comp NDOES
         .comp EXIT
-        .wp HERE
+        .compb $22 ; ent WORD
+        .comp DOCOL
+    .wp EXIT
+    
+    dword (DOES>),7,,NDOES
+        ; replace ent DOVAR with jmp
+        .wp LATEST
+        .wp PEEK
+        .wp TCFA
+        .wp DUP
+        .lit $20 ; jsr abs
+        .wp SWAP
+        .wp POKEBYTE
+        .wp INCR
+        .wp RFETCH
+        .wp INCRTWO ; skip 'EXIT'
         .wp SWAP
         .wp POKE
     .wp EXIT
@@ -2210,13 +2217,11 @@ PS_nostack:
     .wp EXIT
 POSTPONE_notimmed:
         ; TODO, not implemented
-        .lit str
+        .lit not_implemented
         .lit 15
         .wp TYPE
         .wp ABORT
     .wp EXIT
-    
-str: db 'Not implemented'
 
     dword ls,2,,
         .lit text_linux
@@ -2235,8 +2240,6 @@ str: db 'Not implemented'
         .wp SPACE
     .wp EXIT
     
-text_linux: db 'No dice buddy\, this ain't Linux!'
-text_windows: db 'Windows!'
 
     ; Redstone Port controls
     
@@ -2287,7 +2290,7 @@ text_windows: db 'Windows!'
     ; 5: Write disk sector
     ; 6: Clear sector buffer
     
-    ; LOAD PP WIPE LIST BLOCK REVERT FLUSH SAVE"
+    ; LOAD PP SAVE" LIST
     
     dword BINDDISK,8,F_HIDDEN,
         .wp DISKADDR
@@ -2385,16 +2388,67 @@ REVERT_end:
         .wp TWODROP
     .wp EXIT
     
-    dword LIST,4,,
+;    dword LIST,4,,
         .wp BLOCK
         .wp BASE
         .wp PEEK
+        .wp TOR
         .wp DECIMAL
         .lit 0
 LIST_loop:
         
+        .wp FROMR
         .wp BASE
         .wp POKE
+    .wp EXIT
+    
+    dword FLUSH,5,,
+        .wp BINDDISK
+        .wp BLKNO
+        .wp PEEK
+        .lit 8
+        .wp MUL ; origin
+        
+        .lit 0
+FLUSH_loop:
+        .wp TOR
+        .wp RFETCH ; origin i
+        .wp OVER ; origin i origin
+        .wp ADD ; origin current-sector
+        .lit $80
+        .wp BUS_POKE ; origin
+        
+        .wp BUS_GETWIN ; origin c-origin
+        .wp RFETCH
+        .lit 128
+        .wp UMUL
+        .wp BLKBUF
+        .wp ADD
+        .wp SWAP
+        .lit 128 ; origin c-origin c-target c-length
+        .wp MEMCPY ; origin
+        
+        .lit 5
+        .wp DISKCMD
+        
+        .wp FROMR ; origin i
+        .wp INCR ; origin i+1
+        .wp DUP ; origin i i 
+        .lit 8
+        .wp LE ; origin i cond
+        .wp ZBRANCH ; origin i
+        .wp FLUSH_end
+        .wp BRANCH
+        .wp FLUSH_loop
+FLUSH_end:
+        .wp TWODROP
+    .wp EXIT
+    
+    dword WIPE,4,,
+        .wp BL
+        .wp BLKBUF
+        .lit 1024
+        .wp FILL
     .wp EXIT
     
     dword WORDS,5,,
