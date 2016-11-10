@@ -1149,6 +1149,14 @@ public class CPUXC8010 implements ICPU {
         }
     }
 
+    public int insnBufferSize() {
+        return 0x10000;
+    }
+
+    public int insnGain() {
+        return 0x400;
+    }
+
     static {
         E = 256;
         N = 128;

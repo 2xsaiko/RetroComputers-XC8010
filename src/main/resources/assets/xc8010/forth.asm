@@ -1,5 +1,12 @@
 ; Forth OS (RCOS)
 
+; Known bugs:
+; - ... TYPE S" ... crashes
+;
+;
+;
+;
+
     .macro .wp num
         db ${num}, ^${num}
     .endm
@@ -64,8 +71,6 @@ section 0_strings
     COLD_linea: db 'RCOS v0.5 alpha'
     COLD_lineb: db 'bytes free.'
     not_implemented: db 'Not implemented'
-    text_linux: db 'No dice buddy\, this ain't Linux!'
-    text_windows: db 'Windows!'
     
 section 1_dict
 
@@ -733,6 +738,11 @@ COLD_a:
         .wp CURSOR
         .wp SPRST
         .wp QUIT
+        
+    dword ABORT",6,F_IMMED+F_COMPILEONLY,
+        .wp PRTSTR
+        .comp ABORT
+    .wp EXIT
 
     dword QUIT,4,,
         .wp RPRST
@@ -780,13 +790,13 @@ QUIT_pcs:
     dconst TRUE,4,,,_F_TRUE
     dconst FALSE,5,,,_F_FALSE
 
-    dcode BRANCH,6,,
+    dcode BRANCH,6,F_COMPILEONLY,
         nxa
         tax
         txi
     nxt
 
-    dcode 0BRANCH,7,,ZBRANCH
+    dcode 0BRANCH,7,F_COMPILEONLY,ZBRANCH
         nxa
         ply
         bne ZBRANCH_false
@@ -797,6 +807,16 @@ ZBRANCH_false:
     
     dcode TICK,4,,
         wai
+    nxt
+    
+    dcode TICKS,5,,
+        pla
+TICKS_loop:
+        beq TICKS_end
+        wai
+        dec a
+        bra TICKS_loop
+TICKS_end:
     nxt
     
     dcode I,1,,
@@ -813,6 +833,14 @@ ZBRANCH_false:
         lda $0b, r
         pha
     nxt
+    
+    dword +!,2,,ADDSTORE ; ( value addr -- )
+        .wp DUP
+        .wp PEEK
+        .wp ROT
+        .wp ADD
+        .wp POKE
+    .wp EXIT
     
     dword @1+!,4,,PEEKINCR
         .wp DUP
@@ -1395,8 +1423,13 @@ ALLOT_outofmemory:
     .wp ABORT ; reset execution
     
     dword MEMCPY,6,, ; ( source target length -- )
+        .wp DUP
+        .wp ZBRANCH
+        .wp MEMCPY_end
+        
         .wp DECR
         .wp TOR
+        
         
 MEMCPY_loop:
         .wp TWODUP ; src trg src trg
@@ -1444,6 +1477,12 @@ FILL_loop:
 FILL_end:
         .wp DROP
         .wp TWODROP
+    .wp EXIT
+    
+    dword ERASE,5,,
+        .lit 0
+        .wp NROT
+        .wp FILL
     .wp EXIT
     
     dword HIDE,4,,
@@ -1497,6 +1536,10 @@ FILL_end:
     
     dword HEADER,6,,
         .wp WORD ; w-a w-l
+        .wp IHEADER
+    .wp EXIT
+    
+    dword (HEADER),8,,IHEADER
         .lit F_LENMASK
         .wp AND
         .wp HERE ; w-a w-l here
@@ -1578,6 +1621,28 @@ FILL_end:
         .wp LBRAC
     .wp EXIT
     
+    dword },1,F_IMMED+F_COMPILEONLY,END_QCOMP
+        .comp EXIT
+        .wp LBRAC
+        .wp LATEST
+        .wp PEEK
+        .wp TCFA
+        .wp EXECUTE
+        .wp LATEST
+        .wp PEEK
+        .wp IFORGET
+    .wp EXIT
+    
+    dword {,1,,BEGIN_QCOMP
+        .lit 0
+        .wp DUP
+        .wp IHEADER
+        .lit $22
+        .wp CCOMMA
+        .comp DOCOL
+        .wp RBRAC
+    .wp EXIT
+    
     dword LITERAL,7,F_IMMED+F_COMPILEONLY,
         .comp LIT
         .wp COMMA
@@ -1638,7 +1703,7 @@ FILL_end:
     
     dword UNLESS,6,F_IMMED+F_COMPILEONLY,
         .comp ZNEQU
-        .comp IF
+        .wp IF
     .wp EXIT
     
     dword WHILE,5,F_IMMED+F_COMPILEONLY,
@@ -1701,6 +1766,7 @@ LOOP_noqdo:
         .wp _TICK
         .wp SWAP
 TIMES_loop:
+        .wp DUP
         .wp ZBRANCH
         .wp TIMES_end
         .wp OVER
@@ -1729,8 +1795,9 @@ TIMES_end:
         tix
         phx
         pha
-        stx $29
-        adc $29
+        phx
+        adc $01, s
+        plx
         tax
         txi
     nxt
@@ -1758,7 +1825,7 @@ TIMES_end:
         .wp TYPE
     .wp EXIT
     
-    dcode HALT,4,,
+    dcode BYE,3,,
         stp
     nxt
 
@@ -1871,6 +1938,10 @@ TIMES_end:
         mmu $81
         tax
         sep #$20
+        lda $0002, x
+        beq SCROLL_nocursor
+        dec $0002, x
+SCROLL_nocursor:
         stz $0008, x
         stz $000A, x
         stz $000B, x
@@ -1891,10 +1962,6 @@ TIMES_end:
         sta $000D, x
         sta $0007, x
         wai
-        lda $0002, x
-        beq SCROLL_nocursor
-        dec $0002, x
-SCROLL_nocursor:
         rep #$20
     nxt
     
@@ -1934,15 +2001,13 @@ SCROLL_nocursor:
         
         .lit 0
 TYPE_loop:
-        .wp TOR
-        .wp TOR
+        .wp TWOTOR
         .wp DUP
         .wp I
         .wp ADD
         .wp PEEK
         .wp EMIT
-        .wp FROMR
-        .wp FROMR
+        .wp TWOFROMR
         .wp INCR
         .wp TWODUP
         .wp EQU
@@ -2169,8 +2234,7 @@ PS_end:
 PS_nostack:
     .wp EXIT
     
-    dword FORGET,6,,
-        .wp _HTICK
+    dword (FORGET),8,,IFORGET ; ( word -- )
         .wp DUP
         .wp PEEK
         .wp LATEST
@@ -2179,15 +2243,13 @@ PS_nostack:
         .wp POKE
     .wp EXIT
     
-    dword ['],3,F_IMMED+F_COMPILEONLY,CLIT
-        .comp LIT
+    dword FORGET,6,,
+        .wp _HTICK
+        .wp IFORGET
     .wp EXIT
     
-    dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES
-        .comp NDOES
-        .comp EXIT
-        .compb $22 ; ent WORD
-        .comp DOCOL
+    dword ['],3,F_IMMED+F_COMPILEONLY,CLIT
+        .comp LIT
     .wp EXIT
     
     dword (DOES>),7,,NDOES
@@ -2205,6 +2267,13 @@ PS_nostack:
         .wp SWAP
         .wp POKE
     .wp EXIT
+
+    dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES
+        .comp NDOES
+        .comp EXIT
+        .compb $22 ; ent WORD
+        .comp DOCOL
+    .wp EXIT
     
     dword POSTPONE,8,F_IMMED+F_COMPILEONLY,
         .wp _HTICK
@@ -2221,23 +2290,6 @@ POSTPONE_notimmed:
         .lit 15
         .wp TYPE
         .wp ABORT
-    .wp EXIT
-
-    dword ls,2,,
-        .lit text_linux
-        .lit 32
-        .wp TYPE
-        .wp SPACE
-    .wp EXIT
-    
-    dword dir,3,,
-        .lit text_linux
-        .lit 26
-        .wp TYPE
-        .lit text_windows
-        .lit 8
-        .wp TYPE
-        .wp SPACE
     .wp EXIT
     
 
@@ -2388,18 +2440,16 @@ REVERT_end:
         .wp TWODROP
     .wp EXIT
     
-;    dword LIST,4,,
+    ;dword LIST,4,,
         .wp BLOCK
-        .wp BASE
-        .wp PEEK
-        .wp TOR
-        .wp DECIMAL
-        .lit 0
-LIST_loop:
         
-        .wp FROMR
-        .wp BASE
-        .wp POKE
+        .wp CR
+        .wp SPACE
+        .wp I
+        .wp DIGITTOKEY
+        .wp EMIT
+        .wp SPACE 
+        
     .wp EXIT
     
     dword FLUSH,5,,
@@ -2449,6 +2499,10 @@ FLUSH_end:
         .wp BLKBUF
         .lit 1024
         .wp FILL
+    .wp EXIT
+    
+    dword SAVE",5,,
+        .wp SET_DISKNAME
     .wp EXIT
     
     dword WORDS,5,,
