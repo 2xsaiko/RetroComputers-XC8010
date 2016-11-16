@@ -36,8 +36,25 @@ load_loop:
     lda $0382
     cmp #$04
     beq load_loop
-    jsr copy_mem
-    cmp #$00
+    pha
+    phy
+    ldy #$0080
+memcpy_loop:
+    cpy #$0000
+    beq memcpy_end
+    dey
+    lda $0300, y
+    sta ($0020), y
+    bra memcpy_loop
+memcpy_end:
+    rep #$20
+    lda #$0080
+    clc
+    adc $0020
+    sta $0020
+    sep #$20
+    ply
+    pla
     bne ls_eof
     iny
     bra load_disk
@@ -110,27 +127,24 @@ print_end:
     rep #$30
     rts
     
-copy_mem:
-    phy
-    pha
-    sep #$10
-    ldy #$00
-cm_loop:
-    lda $0300, y
-    sta ($0020)
-    rep #$20
-    pha
-    inc $20
-    beq cm_overflow
-    pla
-    sep #$20
-    iny
-    cpy #$80
-    bne cm_loop
-    rep #$10
-    pla
-    ply
-    rts
-cm_overflow:
-    ply
-    bra ls_eof
+;copy_mem:
+;    phy
+;    pha
+;    sep #$10
+;    ldy #$00
+;cm_loop:
+;    lda $0300, y
+;    sta ($0020)
+;    rep #$20
+;    pha
+;    inc $20
+;    beq cm_overflow
+;    pla
+;    sep #$20
+;    iny
+;    cpy #$80
+;    bne cm_loop
+;    rep #$10
+;    pla
+;    ply
+;    rts
