@@ -96,7 +96,7 @@ public class CPUXC8010 implements ICPU {
     @Override
     public void next() {
         int insn = pc1();
-        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
+//        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
         switch (insn) {
             case 0x00: // brk
                 push2(pc);
@@ -189,6 +189,9 @@ public class CPUXC8010 implements ICPU {
             case 0x5a: // phy
                 pushX(regY);
                 break;
+            case 0x5b: // rhy
+                pushrX(regY);
+                break;
             case 0x5c: // txi
                 regI = regX;
                 updNZX(regX);
@@ -219,11 +222,18 @@ public class CPUXC8010 implements ICPU {
                 regA = poprM();
                 updNZ(regA);
                 break;
+            case 0x6d: // adc abs
+                _adc(peekM(pc2()));
+                break;
             case 0x74: // stz zp, x
                 _stz(pc1X());
                 break;
             case 0x7a: // ply
                 regY = popX();
+                updNZX(regY);
+                break;
+            case 0x7b: // rly
+                regY = poprX();
                 updNZX(regY);
                 break;
             case 0x7c: // jmp (abs, x)
@@ -265,6 +275,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x8d: // sta abs
                 _sta(pc2());
+                break;
+            case 0x8e: // stx abs
+                _stx(pc2());
                 break;
             case 0x90: // bcc rel
                 _bra(pc1(), !isup(C));
@@ -330,6 +343,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0xad: // lda abs
                 _lda(peekM(pc2()));
+                break;
+            case 0xae: // ldx abs
+                _ldx(peekM(pc2()));
                 break;
             case 0xb0: // bcs rel
                 _bra(pc1(), isup(C));
