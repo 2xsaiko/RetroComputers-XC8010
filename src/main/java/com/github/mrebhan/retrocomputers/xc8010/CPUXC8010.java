@@ -420,6 +420,17 @@ public class CPUXC8010 implements ICPU {
             case 0xe6: // inc zp
                 _inc(pc1());
                 break;
+            case 0xeb: // xba
+                if (isup(M)) {
+                    int b = regB;
+                    regB = regA & 0xFF;
+                    regA = b & 0xFF;
+                } else {
+                    int a = regA << 8 & 0xFF;
+                    int b = regA >> 8 & 0xFF;
+                    regA = a | b;
+                }
+                break;
             case 0xee: // inc abs
                 _inc(pc2());
                 break;
