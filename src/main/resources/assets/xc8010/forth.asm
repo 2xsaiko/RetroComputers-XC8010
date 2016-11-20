@@ -1,7 +1,7 @@
 ; Forth OS (RCOS)
 
 ; Known bugs:
-; - ... TYPE S" ... crashes
+; - LOAD is buggy when in compile mode
 ;
 ;
 ;
@@ -319,10 +319,12 @@ section 1_dict
         pha
     nxt
     
-    dword 2*,2,,TWOMUL ; ( a -- 2*a )
-        .wp ONE
-        .wp LSHIFT
-    .wp EXIT
+    dcode 2*,2,,TWOMUL ; ( a -- 2*a )
+        pla
+        clc
+        rol a
+        pha
+    nxt
     
     dword U/MOD,5,,UDIVMOD ; ( a b -- a/b a%b )
         .wp SWAP
@@ -545,9 +547,12 @@ section 1_dict
     
     dconst CELL,4,,,$02
     
-    dword CELLS,5,,
-        .wp TWOMUL
-    .wp EXIT
+    dcode CELLS,5,,
+        pla
+        clc
+        rol a
+        pha
+    nxt
     
     dcode !,1,,POKE ; ( value addr -- )
         lda $03, s
@@ -593,31 +598,28 @@ section 1_dict
     dvar STATE,5,,,
     dvar DP,2,,,here_pos
     
-    dword HERE,4,, ; ( -- dp@ )
-        .wp DP
-        .wp PEEK
-    .wp EXIT
+    dcode HERE,4,, ; ( -- dp@ )
+        lda var_DP
+        pha
+    nxt
     
     dvar LATEST,6,,,name_marker
     dvar BASE,4,,,10
     
-    dword DECIMAL,7,,
-        .lit 10
-        .wp BASE
-        .wp POKE
-    .wp EXIT
+    dcode DECIMAL,7,,
+        lda #$000a
+        sta var_BASE
+    nxt
     
-    dword HEX,3,,
-        .lit 16
-        .wp BASE
-        .wp POKE
-    .wp EXIT
+    dcode HEX,3,,
+        lda #$0010
+        sta var_BASE
+    nxt
     
-    dword BIN,3,,
-        .lit 2
-        .wp BASE
-        .wp POKE
-    .wp EXIT
+    dcode BIN,3,,
+        lda #$0002
+        sta var_BASE
+    nxt
     
     dcode >R,2,,TOR ; ( a -- ) R: ( -- a )
         pla
@@ -1397,23 +1399,28 @@ section 1_dict
         .lit $ffff
     .wp EXIT
     
-    dword SPLIT,5,, ; ( $1234 -- $34 $12 )
-        .wp DUP
-        .lit 8
-        .wp RSHIFT
-        .wp SWAP
-        .lit $00FF
-        .wp AND
-    .wp EXIT
+    dcode SPLIT,5,, ; ( $1234 -- $34 $12 )
+        pla
+        sep #$30
+        ldx #$00
+        phx
+        pha
+        xba
+        phx
+        pha
+        rep #$30
+    nxt
     
-    dword JOIN,4,, ; ( $34 $12 -- $1234 )
-        .lit $00FF
-        .wp AND
-        .wp SWAP
-        .lit 8
-        .wp LSHIFT
-        .wp OR
-    .wp EXIT
+    dcode JOIN,4,, ; ( $34 $12 -- $1234 )
+        sep #$30
+        plx
+        ply
+        ply
+        pla
+        phx
+        phy
+        rep #$30
+    nxt
     
     dcode EXECUTE,7,,
         rts
@@ -1465,29 +1472,28 @@ section 1_dict
 
     memcpy_src: db 0,0
     memcpy_dest: db 0,0
-    
-    dword FILL,4,, ; ( byte target length -- )
-        .wp DECR
-        .wp TOR
-        
-    FILL_loop:
-        .wp TWODUP ; dat trg dat trg
-        .wp RFETCH ; dat trg dat trg i
-        .wp ADD ; dat trg dat trgaddr
-        .wp POKEBYTE ; dat trg
-        
-        .wp FROMR ; dat trg i
-        .wp DUP
-        .wp ZBRANCH
-        .wp FILL_end
-        .wp DECR
-        .wp TOR
-        .wp BRANCH
-        .wp FILL_loop
-    FILL_end:
-        .wp DROP
-        .wp TWODROP
-    .wp EXIT
+
+    dcode FILL,6,, ; ( byte target length -- )
+            ply
+            pla
+            plx
+            jsr fill
+        nxt
+
+        fill: ; (A: target X: fill Y: length)
+            stx memcpy_src
+            sta memcpy_dest
+            sep #$20
+        fill_loop:
+            cpy #$0000
+            beq fill_end
+            dey
+            lda memcpy_src
+            sta (memcpy_dest), y
+            bra fill_loop
+        fill_end:
+            rep #$20
+        rts
     
     dword ERASE,5,, ; ( target length -- )
         .wp ZERO
@@ -1800,19 +1806,20 @@ section 1_dict
         .wp TWODROP
     .wp EXIT
     
-    dcode (S"),4,F_COMPILEONLY+F_HIDDEN,LITSTRING
+    dcode ("),3,F_COMPILEONLY,LITSTRING
         nxa
         tix
         phx
         pha
         phx
+        clc
         adc $01, s
         plx
         tax
         txi
     nxt
     
-    dword S",2,F_IMMED+F_COMPILEONLY,PUTSTR
+    dword ",1,F_IMMED+F_COMPILEONLY,PUTSTR
         .comp LITSTRING
         .lit $22
         .wp PARSE ; addr len
@@ -1888,8 +1895,6 @@ section 1_dict
     .wp EXIT
 
     dconst BL,2,,,_F_BL
-    dconst RETURN,6,,,_F_RETURN
-    dconst BACK,4,,,_F_BACKSPACE
     
     dword SPACE,5,,
         .wp BL
@@ -2048,20 +2053,16 @@ section 1_dict
     
     dword XY@,3,,GETXY ; ( -- x y )
         .wp BINDTERM
-        .wp BUS_GETWIN
-        .wp INCR
-        .wp PEEK
+        .wp ONE
+        .wp BUS_PEEK
         .wp SPLIT
-        .wp SWAP
     .wp EXIT
     
     dword XY!,3,,SETXY ; ( x y -- )
-        .wp SWAP
         .wp JOIN
         .wp BINDTERM
-        .wp BUS_GETWIN
-        .wp INCR
-        .wp POKE
+        .wp ONE
+        .wp BUS_POKE
     .wp EXIT
     
     dword CURSOR,6,, ; ( cursortype -- )
@@ -2098,7 +2099,7 @@ section 1_dict
         .wp KEY
         
         .wp DUP
-        .wp RETURN
+        .lit _F_RETURN
         .wp EQU
         .wp ZBRANCH
         .wp RL_a
@@ -2109,7 +2110,7 @@ section 1_dict
         .wp EXIT
     RL_a:
         .wp DUP
-        .wp BACK
+        .lit _F_BACKSPACE
         .wp EQU
         .wp ZBRANCH
         .wp RL_b
@@ -2436,20 +2437,20 @@ section 1_dict
         jsr bind_disk
     nxt
     
-    dvar (BLKBUF),8,F_HIDDEN,BLKBUF_INT, ; 1024 byte disk block buffer
+    BLKBUF_INT: db 0,0
     dword BLKBUF,6,,
-        .wp BLKBUF_INT
+        .lit BLKBUF_INT
         .wp PEEK
         .wp ZBRANCH
         .wp BLKBUF_allot
-        .wp BLKBUF_INT
+        .lit BLKBUF_INT
         .wp PEEK
     .wp EXIT
     BLKBUF_allot:
         .lit 1024
         .wp ALLOT
         .wp DUP
-        .wp BLKBUF_INT
+        .lit BLKBUF_INT
         .wp POKE
     .wp EXIT
     
