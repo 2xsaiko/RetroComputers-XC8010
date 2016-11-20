@@ -1,15 +1,14 @@
 package com.github.mrebhan.retrocomputers.xc8010;
 
-import java.io.IOException;
-import java.io.InputStream;
-
+import com.github.mrebhan.retrocomputers.api.IBusEndpoint;
 import com.github.mrebhan.retrocomputers.api.ICPU;
 import com.github.mrebhan.retrocomputers.api.IComputerCase;
-import com.github.mrebhan.retrocomputers.api.IMemory;
 import com.github.mrebhan.retrocomputers.api.IMemory64;
-
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.ResourceLocation;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 public class CPUXC8010 implements ICPU {
 
@@ -40,7 +39,7 @@ public class CPUXC8010 implements ICPU {
     private short flags;
 
     private boolean timeout;
-    private IMemory cache;
+    private IBusEndpoint cache;
 
     public CPUXC8010(IMemory64 mem, IComputerCase pcCase) {
         this.mem = mem;
@@ -1076,7 +1075,7 @@ public class CPUXC8010 implements ICPU {
 
     private boolean cache() {
         if (cache == null) {
-            IMemory mem = pcCase.findBus(rbAddr);
+            IBusEndpoint mem = pcCase.findBus(rbAddr);
             if ((cache = mem) == null) {
                 timeout();
                 return false;
