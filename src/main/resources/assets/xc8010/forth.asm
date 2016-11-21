@@ -781,11 +781,9 @@ section 1_dict
     QUIT_cont:
         
         .lit $80
-        .lit $80
+        .wp DUP
+        .wp DUP
         .wp ACCEPT ; read into address $80, max length $80
-        
-        .lit $80
-        .wp SWAP
         .wp INTERPRET
         
         .lit QUIT_ok
@@ -1473,7 +1471,7 @@ section 1_dict
     memcpy_src: db 0,0
     memcpy_dest: db 0,0
 
-    dcode FILL,6,, ; ( byte target length -- )
+    dcode FILL,4,, ; ( byte target length -- )
             ply
             pla
             plx
@@ -1819,7 +1817,19 @@ section 1_dict
         txi
     nxt
     
-    dword ",1,F_IMMED+F_COMPILEONLY,PUTSTR
+    dword ",1,F_IMMED,PUTSTR
+        .lit STATE
+        .wp ZBRANCH
+        .wp PUTSTR_comp
+        .wp HERE ; here
+        .lit $22
+        .wp PARSE ; here addr len
+        .wp TUCK ; here len addr len
+        .wp HERE ; here len addr len here
+        .wp SWAP ; here len addr here len
+        .wp MEMCPY ; here len
+    .wp EXIT
+    PUTSTR_comp:
         .comp LITSTRING
         .lit $22
         .wp PARSE ; addr len
