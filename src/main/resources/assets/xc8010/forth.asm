@@ -1818,9 +1818,21 @@ section 1_dict
     nxt
     
     dword ",1,F_IMMED,PUTSTR
-        .lit STATE
+        .wp STATE
+        .wp PEEK
         .wp ZBRANCH
-        .wp PUTSTR_comp
+        .wp PUTSTR_immed
+        .comp LITSTRING
+        .lit $22
+        .wp PARSE ; addr len
+        .wp DUP
+        .wp COMMA
+        .wp DUP ; addr len len
+        .wp ALLOT ; addr len here
+        .wp SWAP ; addr here len
+        .wp MEMCPY
+    .wp EXIT
+    PUTSTR_immed:
         .wp HERE ; here
         .lit $22
         .wp PARSE ; here addr len
@@ -1828,17 +1840,6 @@ section 1_dict
         .wp HERE ; here len addr len here
         .wp SWAP ; here len addr here len
         .wp MEMCPY ; here len
-    .wp EXIT
-    PUTSTR_comp:
-        .comp LITSTRING
-        .lit $22
-        .wp PARSE ; addr len
-        .wp DUP
-        .wp COMMA
-        .wp DUP ; addr len len
-        .wp ALLOT ; addr len here 
-        .wp SWAP ; addr here len
-        .wp MEMCPY
     .wp EXIT
     
     dword .",2,F_IMMED+F_COMPILEONLY,PRTSTR
