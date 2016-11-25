@@ -2,7 +2,6 @@ package com.github.mrebhan.retrocomputers.xc8010;
 
 import com.github.mrebhan.retrocomputers.api.DiskRegistry;
 import com.github.mrebhan.retrocomputers.api.ItemCPU;
-
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.model.ModelLoader;

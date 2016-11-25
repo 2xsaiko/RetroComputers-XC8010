@@ -1,7 +1,7 @@
 {
-"parent": "retrocomputers:item/cpu",
+  "parent": "retrocomputers:item/cpu",
   "textures": {
-    "cpu": "retrocomputers:items/cpu", 
+    "cpu": "retrocomputers:items/cpu",
     "pin": "retrocomputers:items/cpu_pins"
   }
 }

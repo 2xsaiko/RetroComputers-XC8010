@@ -1,6 +1,5 @@
 package com.github.mrebhan.retrocomputers.xc8010;
 
-import com.github.mrebhan.retrocomputers.api.IBusEndpoint;
 import com.github.mrebhan.retrocomputers.api.ICPU;
 import com.github.mrebhan.retrocomputers.api.IComputerCase;
 import com.github.mrebhan.retrocomputers.api.IMemory64;
@@ -15,31 +14,36 @@ public class CPUXC8010 implements ICPU {
     private static final short E, N, V, M, X, D, I, Z, C;
     private static final ResourceLocation BOOTLOADER = new ResourceLocation("xc8010:bootldr.bin");
 
+    static {
+        E = 256;
+        N = 128;
+        V = 64;
+        M = 32;
+        X = 16;
+        D = 8;
+        I = 4;
+        Z = 2;
+        C = 1;
+    }
+
     private IMemory64 mem;
     private IComputerCase pcCase;
-
     private int regA;
     private int regB;
     private int regX;
     private int regY;
     private int regI;
     private int regD;
-
     private int sp;
     private int rp;
     private int pc;
-
     private int resetAddr;
     private int brkAddr;
-
     private byte rbAddr;
     private int rbOffset;
     private boolean rbEnabled;
-
     private short flags;
-
     private boolean timeout;
-    private IBusEndpoint cache;
 
     public CPUXC8010(IMemory64 mem, IComputerCase pcCase) {
         this.mem = mem;
@@ -92,10 +96,12 @@ public class CPUXC8010 implements ICPU {
         pc = resetAddr;
     }
 
+    // for sbc implementation: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+
     @Override
     public void next() {
         int insn = pc1();
-//        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
+        //        System.out.printf("%04x: %02x [SP: %04x RP: %04x IP: %04x]%n", pc - 1, insn, sp, rp, regI);
         switch (insn) {
             case 0x00: // brk
                 push2(pc);
@@ -396,7 +402,7 @@ public class CPUXC8010 implements ICPU {
                 pushX(regX);
                 break;
             case 0xdb: // stp
-                pcCase.haltAndCatchFire();
+                pcCase.stop();
                 break;
             case 0xdc: // tix
                 regX = regI & maskX();
@@ -452,11 +458,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             default:
                 System.out.printf("Invalid opcode: %02x at %04x%n", insn, pc - 1);
-                pcCase.haltAndCatchFire();
+                pcCase.stop();
         }
     }
-
-    // for sbc implementation: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 
     private void _adc(int data) {
         //TODO: implement decimal addition
@@ -753,13 +757,10 @@ public class CPUXC8010 implements ICPU {
     private void _mmu(int data) {
         switch (data) {
             case 0x00:
-                if (rbAddr != (byte) regA && cache != null) {
-                    timeout();
-                }
-                rbAddr = (byte) regA;
+                pcCase.setBusTarget((byte) regA);
                 break;
             case 0x80:
-                regA = rbAddr & 0xFF;
+                regA = pcCase.getBusTarget();
                 break;
             case 0x01:
                 rbOffset = regA;
@@ -1047,8 +1048,8 @@ public class CPUXC8010 implements ICPU {
 
     private int peek1(int addr) {
         if (rbEnabled && addr >= rbOffset && addr < rbOffset + 0x100) {
-            if (cache())
-                return cache.peekC(addr - rbOffset);
+            if (pcCase.getCache() != null)
+                return pcCase.getCache().peekC(addr - rbOffset);
             return 0;
         }
         return mem.peekC(addr);
@@ -1077,27 +1078,11 @@ public class CPUXC8010 implements ICPU {
 
     private void poke1(int addr, int data) {
         if (rbEnabled && addr >= rbOffset && addr < rbOffset + 0x100) {
-            if (cache())
-                cache.pokeC(addr - rbOffset, data);
+            if (pcCase.getCache() != null)
+                pcCase.getCache().pokeC(addr - rbOffset, data);
             return;
         }
         mem.pokeC(addr, data);
-    }
-
-    private boolean cache() {
-        if (cache == null) {
-            IBusEndpoint mem = pcCase.findBus(rbAddr);
-            if ((cache = mem) == null) {
-                timeout();
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public void clearCache() {
-        cache = null;
     }
 
     @Override
@@ -1181,18 +1166,6 @@ public class CPUXC8010 implements ICPU {
 
     public int insnGain() {
         return 0x400;
-    }
-
-    static {
-        E = 256;
-        N = 128;
-        V = 64;
-        M = 32;
-        X = 16;
-        D = 8;
-        I = 4;
-        Z = 2;
-        C = 1;
     }
 
 }
