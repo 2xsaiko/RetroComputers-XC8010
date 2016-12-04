@@ -909,7 +909,6 @@ section 1_dict
     .wp EXIT
     
     dword INTERPRET,9,, ; ( address length -- )
-    
         .lit $20
         .wp PEEK
         .wp TOR
@@ -2081,7 +2080,27 @@ section 1_dict
         .lit 3
         .wp BUS_POKEBYTE
     .wp EXIT
-    
+
+    dcode KEY?,4,,KEYQ ; ( -- key/0 )
+        mmu $81
+        tax
+        lda #$0000
+        sep #$20
+        lda $0004, x
+        cmp $0005, x
+        beq KEYQ_nokey
+        lda $0006, x
+        inc $0004, x
+        rep #$20
+        pha
+    nxt
+
+    KEYQ_nokey:
+        rep #$20
+        lda #$0000
+        pha
+    nxt
+
     dcode KEY,3,, ; ( -- key )
         mmu $81
         tax
