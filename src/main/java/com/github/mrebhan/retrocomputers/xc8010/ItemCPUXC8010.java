@@ -13,8 +13,8 @@ public class ItemCPUXC8010 extends ItemCPU {
     }
 
     @Override
-    public ICPU createCPU(IMemory64 arg0, IComputerCase arg1, ItemStack arg2) {
-        return new CPUXC8010(arg0, arg1);
+    public ICPU createCPU(IComputerCase arg1, ItemStack arg2) {
+        return new CPUXC8010(arg1);
     }
 
     @Override

@@ -2,7 +2,6 @@ package com.github.mrebhan.retrocomputers.xc8010;
 
 import com.github.mrebhan.retrocomputers.api.ICPU;
 import com.github.mrebhan.retrocomputers.api.IComputerCase;
-import com.github.mrebhan.retrocomputers.api.IMemory64;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.ResourceLocation;
 
@@ -26,7 +25,6 @@ public class CPUXC8010 implements ICPU {
         C = 1;
     }
 
-    private IMemory64 mem;
     private IComputerCase pcCase;
     private int regA;
     private int regB;
@@ -45,8 +43,7 @@ public class CPUXC8010 implements ICPU {
     private short flags;
     private boolean timeout;
 
-    public CPUXC8010(IMemory64 mem, IComputerCase pcCase) {
-        this.mem = mem;
+    public CPUXC8010(IComputerCase pcCase) {
         this.pcCase = pcCase;
         hardReset();
     }
@@ -68,8 +65,8 @@ public class CPUXC8010 implements ICPU {
         dn(-1);
         up(E | M | X);
 
-        mem.pokeC(0, pcCase.getDiskAddr()); // Disk drive address [Default: 2]
-        mem.pokeC(1, pcCase.getTermAddr()); // terminal address [Default: 1]
+        pcCase.poke(0, pcCase.getDiskAddr()); // Disk drive address [Default: 2]
+        pcCase.poke(1, pcCase.getTermAddr()); // terminal address [Default: 1]
 
         String path = "assets/" + BOOTLOADER.getResourceDomain() + "/" + BOOTLOADER.getResourcePath();
         InputStream str = ModCPUXC8010.class.getClassLoader().getResourceAsStream(path);
@@ -78,7 +75,7 @@ public class CPUXC8010 implements ICPU {
             byte[] bl = new byte[0x100];
             try {
                 str.read(bl);
-                mem.poke(0x400, bl);
+                pcCase.poke((short) 0x400, bl);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -763,7 +760,7 @@ public class CPUXC8010 implements ICPU {
                 regA = pcCase.getBusTarget();
                 break;
             case 0x01:
-                rbOffset = regA;
+                rbOffset = regA & maskM();
                 break;
             case 0x81:
                 regA = rbOffset;
@@ -775,28 +772,28 @@ public class CPUXC8010 implements ICPU {
                 rbEnabled = false;
                 break;
             case 0x03:
-                // TODO
+                pcCase.setWriteEnabled(true);
                 break;
             case 0x83:
-                // TODO
+                pcCase.setWriteEnabled(false);
                 break;
             case 0x04:
-                // TODO
+                pcCase.setWriteOffset((short) (regA & maskM()));
                 break;
             case 0x84:
-                // TODO
+                regA = pcCase.getWriteOffset() & maskM();
                 break;
             case 0x05:
-                brkAddr = regA;
+                brkAddr = regA & maskM();
                 break;
             case 0x85:
-                regA = brkAddr;
+                regA = brkAddr & maskM();
                 break;
             case 0x06:
-                resetAddr = regA;
+                resetAddr = regA & maskM();
                 break;
             case 0x86:
-                regA = resetAddr;
+                regA = resetAddr & maskM();
                 break;
             case 0xFF:
                 System.out.print("");
@@ -1052,7 +1049,7 @@ public class CPUXC8010 implements ICPU {
                 return pcCase.getCache().peekC(addr - rbOffset);
             return 0;
         }
-        return mem.peekC(addr);
+        return pcCase.peek(addr);
     }
 
     private void pokeM(int addr, int data) {
@@ -1082,7 +1079,7 @@ public class CPUXC8010 implements ICPU {
                 pcCase.getCache().pokeC(addr - rbOffset, data);
             return;
         }
-        mem.pokeC(addr, data);
+        pcCase.poke(addr, data);
     }
 
     @Override
