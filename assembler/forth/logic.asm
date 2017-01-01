@@ -1,11 +1,6 @@
     dword =,1,,EQU ; ( a b -- a==b )
         .wp SUB
-        .wp ZBRANCH
-        .wp EQU_true
-        .wp FALSE
-        .wp EXIT
-    EQU_true:
-        .wp TRUE
+        .wp ZNEQU
     .wp EXIT
 
     dword <>,2,,NEQU ; ( a b -- a!=b )
