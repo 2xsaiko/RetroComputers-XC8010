@@ -317,6 +317,16 @@ public class CPUXC8010 implements ICPU {
             case 0x9e: // stz abs, x
                 _stz(pc2X());
                 break;
+            case 0x9f: // sea
+                regD = 0;
+                if (isup(M)) {
+                    byte b = (byte) regA;
+                    if (b < 0) regD = maskM();
+                } else {
+                    short s = (short) regA;
+                    if (s < 0) regD = maskM();
+                }
+                break;
             case 0xa0: // ldy #
                 _ldy(pcX());
                 break;
@@ -389,8 +399,11 @@ public class CPUXC8010 implements ICPU {
                 regX--;
                 regX = regX & maskX();
                 updNZX(regX);
-            case 0xcb: // wai
+            case 0xcb: // waid
                 timeout();
+                break;
+            case 0xcf: // pld
+                regD = popM();
                 break;
             case 0xd0: // bne rel
                 _bra(pc1(), !isup(Z));
@@ -720,28 +733,28 @@ public class CPUXC8010 implements ICPU {
 
         if (isup(C)) {
             if (isup(M)) {
-                int a = regA;
+                int a = (regA & 0xFF | (regD & 0xFF) << 8) & 0xFFFF;
                 regA = a / data;
                 regD = a % data;
                 updNZ(regA);
                 setFlags(V, regD != 0);
             } else {
-                int a = regA;
-                regA = a / data;
-                regD = a % data;
+                long a = (regA & 0xFFFF | (regD & 0xFFFF) << 16) & 0xFFFFFFFFL;
+                regA = (int) (a / data) & maskM();
+                regD = (int) (a % data) & maskM();
                 updNZ(regA);
                 setFlags(V, regD != 0);
             }
         } else {
             if (isup(M)) {
-                byte a = (byte) regA;
+                short a = (short) (regA & 0xFF | (regD & 0xFF) << 8);
                 byte b = (byte) data;
-                regA = a / b;
-                regD = a % b;
+                regA = (a / b) & maskM();
+                regD = (a % b) & maskM();
                 updNZ(regA);
                 setFlags(V, regD != 0);
             } else {
-                short a = (short) regA;
+                int a = regA & 0xFFFF | (regD & 0xFFFF) << 16;
                 short b = (short) data;
                 regA = a / b;
                 regD = a % b;
