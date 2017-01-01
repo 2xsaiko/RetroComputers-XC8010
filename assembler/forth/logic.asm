@@ -1,6 +1,6 @@
     dword =,1,,EQU ; ( a b -- a==b )
         .wp SUB
-        .wp ZNEQU
+        .wp ZEQU
     .wp EXIT
 
     dword <>,2,,NEQU ; ( a b -- a!=b )
