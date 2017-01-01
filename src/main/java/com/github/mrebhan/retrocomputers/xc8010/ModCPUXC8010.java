@@ -27,6 +27,10 @@ public class ModCPUXC8010 {
 
         DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk",
                 new ResourceLocation("xc8010:forth.bin"));
+        DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk_ext",
+                new ResourceLocation("xc8010:extforth.bin"));
+        DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk_min",
+                new ResourceLocation("xc8010:minforth.bin"));
         if (e.getSide() == Side.CLIENT) {
             ModelLoader.setCustomModelResourceLocation(cpuItem, 0,
                     new ModelResourceLocation("xc8010:cpu", "inventory"));
