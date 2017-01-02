@@ -158,6 +158,7 @@
     .wp EXIT
 
     dword .S,2,,PRINT_STACK
+
         .ifncflag min
             .lit $3c
             .wp EMIT
