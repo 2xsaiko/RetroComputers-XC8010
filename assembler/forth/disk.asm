@@ -138,7 +138,7 @@
                 .wp INCR ; origin i+1
                 .wp DUP ; origin i i
                 .lit 8
-                .wp LE ; origin i cond
+                .wp LT ; origin i cond
                 .wp ZBRANCH ; origin i
                 .wp REVERT_end
                 .wp BRANCH
@@ -255,7 +255,10 @@
             .wp MEMCPY
         .wp EXIT
 
-        dword LOAD,4,,
+        dword LOAD,4,, ; ( blockid -- )
+            .wp BLKNO
+            .wp PEEK
+            .wp TOR
             .wp BLOCK
             .lit 0
         LOAD_loop:
@@ -280,5 +283,7 @@
             .wp LOAD_loop
         LOAD_end:
             .wp DROP
+            .wp FROMR
+            .wp BLOCK
         .wp EXIT
     .endif

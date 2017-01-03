@@ -1,9 +1,8 @@
 ; Forth OS (RCOS)
 
 ; Known bugs:
-; - When compiling a word from disk and then executing LOAD in that same disk buffer it kills the dictionary
-;   (ex. 0 PP : A ." hi" ;
-;        1 PP LOAD 1)
+;
+;
 ;
 ;
 ;
