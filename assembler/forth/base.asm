@@ -52,7 +52,7 @@
     COLD_a:
         .wp CR
         .lit COLD_linea
-        .lit 15
+        .lit 9
         .wp TYPE
         .wp CR
         .wp FREE

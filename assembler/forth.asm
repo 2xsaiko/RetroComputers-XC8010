@@ -81,7 +81,7 @@ section 0_strings
     QUIT_ok: db ' ok'
     QUIT_prompta: db '> '
     QUIT_promptb: db 'compile\: '
-    COLD_linea: db 'RCOS v0.9 alpha'
+    COLD_linea: db 'RCOS v1.0'
     COLD_lineb: db 'bytes free.'
     not_implemented: db 'Not implemented'
     

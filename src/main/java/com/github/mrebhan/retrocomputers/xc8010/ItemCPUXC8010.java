@@ -2,7 +2,6 @@ package com.github.mrebhan.retrocomputers.xc8010;
 
 import com.github.mrebhan.retrocomputers.api.ICPU;
 import com.github.mrebhan.retrocomputers.api.IComputerCase;
-import com.github.mrebhan.retrocomputers.api.IMemory64;
 import com.github.mrebhan.retrocomputers.api.ItemCPU;
 import net.minecraft.item.ItemStack;
 
