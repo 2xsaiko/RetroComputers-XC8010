@@ -1,4 +1,6 @@
 item.xc8010:cpu.name=XC8010 CPU
+item.xc8010:cpu_amp8.name=XC8010 CPU (Overclocked 8x)
+item.xc8010:cpu_amp64.name=XC8010 CPU (Overclocked 64x)
 item.xc8010:forth_disk.name=FORTH Boot Disk
 item.xc8010:forth_disk_min.name=Minimal FORTH Boot Disk
 item.xc8010:forth_disk_ext.name=Extended FORTH Boot Disk
