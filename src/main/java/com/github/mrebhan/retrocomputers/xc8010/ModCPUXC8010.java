@@ -41,9 +41,9 @@ public class ModCPUXC8010 {
             ModelLoader.setCustomModelResourceLocation(cpuItem, 0,
                     new ModelResourceLocation("xc8010:cpu", "inventory"));
             ModelLoader.setCustomModelResourceLocation(cpuItem_amp8, 0,
-                    new ModelResourceLocation("xc8010:cpu_amp8", "inventory"));
+                    new ModelResourceLocation("xc8010:cpu", "inventory"));
             ModelLoader.setCustomModelResourceLocation(cpuItem_amp64, 0,
-                    new ModelResourceLocation("xc8010:cpu_amp64", "inventory"));
+                    new ModelResourceLocation("xc8010:cpu", "inventory"));
         }
     }
 
