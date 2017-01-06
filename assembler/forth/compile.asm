@@ -54,8 +54,7 @@
     .wp EXIT
 
     dword [COMPILE],9,F_IMMED+F_COMPILEONLY,COMPILEB
-        .wp _HTICK
-        .wp TCFA
+        .wp _TICK
         .wp COMMA
     .wp EXIT
 

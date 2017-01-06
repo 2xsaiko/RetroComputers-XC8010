@@ -110,8 +110,7 @@
         rts
 
     dword HIDE,4,,
-        .wp LATEST
-        .wp PEEK
+        .wp _HTICK
         .wp INCRTWO
         .wp DUP
         .wp PEEKBYTE
