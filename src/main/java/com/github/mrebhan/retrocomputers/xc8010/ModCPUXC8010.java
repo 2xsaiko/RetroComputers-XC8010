@@ -20,16 +20,16 @@ public class ModCPUXC8010 {
 
     public ItemCPU cpuItem;
     public ItemCPU cpuItem_amp8;
-    public ItemCPU cpuItem_amp64;
+    public ItemCPU cpuItem_amp2;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent e) {
         cpuItem = new ItemCPUXC8010("xc8010:cpu", "cpu_xc8010", 1);
+        cpuItem_amp2 = new ItemCPUXC8010("xc8010:cpu_amp2", "cpu_xc8010_amp2", 2);
         cpuItem_amp8 = new ItemCPUXC8010("xc8010:cpu_amp8", "cpu_xc8010_amp8", 8);
-        cpuItem_amp64 = new ItemCPUXC8010("xc8010:cpu_amp64", "cpu_xc8010_amp64", 64);
         GameRegistry.register(cpuItem);
+        GameRegistry.register(cpuItem_amp2);
         GameRegistry.register(cpuItem_amp8);
-        GameRegistry.register(cpuItem_amp64);
 
         DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk",
                 new ResourceLocation("xc8010:forth.bin"));
@@ -40,9 +40,9 @@ public class ModCPUXC8010 {
         if (e.getSide() == Side.CLIENT) {
             ModelLoader.setCustomModelResourceLocation(cpuItem, 0,
                     new ModelResourceLocation("xc8010:cpu", "inventory"));
-            ModelLoader.setCustomModelResourceLocation(cpuItem_amp8, 0,
+            ModelLoader.setCustomModelResourceLocation(cpuItem_amp2, 0,
                     new ModelResourceLocation("xc8010:cpu", "inventory"));
-            ModelLoader.setCustomModelResourceLocation(cpuItem_amp64, 0,
+            ModelLoader.setCustomModelResourceLocation(cpuItem_amp8, 0,
                     new ModelResourceLocation("xc8010:cpu", "inventory"));
         }
     }
