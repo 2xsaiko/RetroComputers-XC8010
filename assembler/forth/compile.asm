@@ -74,6 +74,13 @@
         .wp POKE
     .wp EXIT
 
+    .macro .does
+        .wp NDOES
+        .wp EXIT
+        db $22 ; ent WORD
+        .wp DOCOL
+    .endm
+
     dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES
         .comp NDOES
         .comp EXIT

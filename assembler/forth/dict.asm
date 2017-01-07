@@ -291,3 +291,25 @@
         .wp AND
         .wp ZNEQU
     .wp EXIT
+
+    .ifcflag disk_ext
+        dword DEFER,5,,
+            .wp CREATE
+            .lit EXIT
+            .wp COMMA
+            .does
+            .wp PEEK
+            .wp EXECUTE
+        .wp EXIT
+
+        dword DEFER!,6,,DEFER_SET
+            .lit 3
+            .wp ADD
+            .wp POKE
+        .wp EXIT
+
+        dword IS,2,,
+            .wp _TICK
+            .wp DEFER_SET
+        .wp EXIT
+    .endif
