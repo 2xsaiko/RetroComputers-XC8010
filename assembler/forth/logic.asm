@@ -28,6 +28,32 @@
         .wp INVERT
     .wp EXIT
 
+    dcode U>,2,,UGT ; ( a b -- a>b )
+        ldx #_F_TRUE
+        pla
+        cmp $01, s
+        bvc ULT_end
+        ldx #_F_FALSE
+    ULT_end:
+        ply
+        phx
+    nxt
+
+    dword U<,2,,ULT ; ( a b -- a<b )
+        .wp SWAP
+        .wp UGT
+    .wp EXIT
+
+    dword U<=,3,,ULE ; ( a b -- a<=b )
+        .wp UGT
+        .wp INVERT
+    .wp EXIT
+
+    dword U>=,3,,UGE ; ( a b -- a>=b )
+        .wp ULT
+        .wp INVERT
+    .wp EXIT
+
     dcode 0=,2,,ZEQU ; ( a -- a==0 )
         pla
         beq ZEQU_yes

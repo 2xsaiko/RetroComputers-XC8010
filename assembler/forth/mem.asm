@@ -154,12 +154,9 @@
     dword ALLOT,5,, ; ( length -- addr )
         .wp DUP
         .wp FREE
-        .wp SWAP
-        .wp SUB
-        .wp ZGE
+        .wp ULE
         .wp ZBRANCH
         .wp ALLOT_outofmemory
-
         .wp HERE
         .wp TUCK
         .wp ADD
