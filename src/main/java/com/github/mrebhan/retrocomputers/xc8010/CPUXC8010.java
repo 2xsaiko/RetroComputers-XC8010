@@ -119,8 +119,14 @@ public class CPUXC8010 implements ICPU {
             case 0x04: // tsb zp
                 _tsb(peekM(pc1()));
                 break;
+            case 0x05: // ora zp
+                _ora(peekM(pc1()));
+                break;
             case 0x08: // php
                 push1(flags & 0xFF);
+                break;
+            case 0x09: // ora #
+                _ora(pcM());
                 break;
             case 0x0B: // rhi
                 pushr2(regI);
@@ -157,6 +163,9 @@ public class CPUXC8010 implements ICPU {
             case 0x30: // bmi rel
                 _bra(pc1(), isup(N));
                 break;
+            case 0x3d: // and abs, x
+                _and(peekM(pc2X()));
+                break;
             case 0x38: // sec
                 up(C);
                 break;
@@ -187,6 +196,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x4c: // jmp abs
                 pc = pc2();
+                break;
+            case 0x50: // bvc rel
+                _bra(pc1(), !isup(C));
                 break;
             case 0x5a: // phy
                 pushX(regY);
@@ -226,6 +238,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x6d: // adc abs
                 _adc(peekM(pc2()));
+                break;
+            case 0x70: // bvs rel
+                _bra(pc1(), isup(C));
                 break;
             case 0x74: // stz zp, x
                 _stz(pc1X());
