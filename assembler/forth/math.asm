@@ -25,7 +25,6 @@
     nxt
 
     dcode +,1,,ADD ; ( a b -- a+b )
-        clc
         pla
         clc
         adc $01, s
@@ -33,14 +32,10 @@
         pha
     nxt
 
-    dcode -,1,,SUB ; ( a b -- a-b )
-        lda $03, s
-        sec
-        sbc $01, s
-        ply
-        ply
-        pha
-    nxt
+    dword -,1,,SUB ; ( a b -- a-b )
+        .wp NEGATE
+        .wp ADD
+    .wp EXIT
 
     dcode UM*,3,,UMMUL ; ( a b -- d[a*b] )
         pla
@@ -134,6 +129,35 @@
         .wp ABS_noaction
         .wp NEGATE
     ABS_noaction:
+    .wp EXIT
+
+    dword DNEGATE,7,,
+        .wp INVERT
+        .wp SWAP
+        .wp INVERT
+        .wp SWAP
+        .wp ONE
+        .wp ZERO
+        .wp DADD
+    .wp EXIT
+
+    dcode D+,2,,DADD ; ( a b -- a+b )
+        plx
+        pla
+        clc
+        adc $03, s
+        tay
+        txa
+        adc $01, s
+        plx
+        plx
+        phy
+        pha
+    nxt
+
+    dword D-,2,,DSUB ; ( a b -- a-b )
+        .wp DNEGATE
+        .wp DADD
     .wp EXIT
 
     dcode SPLIT,5,, ; ( $1234 -- $34 $12 )

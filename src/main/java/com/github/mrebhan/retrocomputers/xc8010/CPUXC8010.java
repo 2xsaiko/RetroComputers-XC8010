@@ -93,8 +93,6 @@ public class CPUXC8010 implements ICPU {
         pc = resetAddr;
     }
 
-    // for sbc implementation: http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
-
     @Override
     public void next() {
         int insn = pc1();
