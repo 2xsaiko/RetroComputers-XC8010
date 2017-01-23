@@ -129,6 +129,9 @@ public class CPUXC8010 implements ICPU {
             case 0x0B: // rhi
                 pushr2(regI);
                 break;
+            case 0x0F: // mul zp
+                _mul(peekM(pc1()));
+                break;
             case 0x18: // clc
                 dn(C);
                 break;
@@ -181,6 +184,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x43: // eor r, s
                 _eor(pc1S());
+                break;
+            case 0x45: // eor zp
+                _eor(peekM(pc1()));
                 break;
             case 0x48: // pha
                 pushM(regA);
@@ -276,6 +282,10 @@ public class CPUXC8010 implements ICPU {
                 regY--;
                 regY = regY & maskX();
                 updNZX(regY);
+                break;
+            case 0x89: // bit #
+                int mask = pcM();
+                setFlags(Z, (regA & mask) == 0);
                 break;
             case 0x8a: // txa
                 regA = regX & maskM();
@@ -399,6 +409,9 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0xc3: // cmp r, s
                 _cmp(regA, peekM(pc1S()));
+                break;
+            case 0xc6: // dec zp
+                _dec(pc1());
                 break;
             case 0xc8: // iny
                 regY++;
@@ -929,8 +942,7 @@ public class CPUXC8010 implements ICPU {
 
     private int pcIX() {
         int addr = (pc2() + regX) & 0xFFFF;
-        int val = peek2(addr);
-        return val;
+        return peek2(addr);
     }
 
     private int pcS() {
