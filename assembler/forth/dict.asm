@@ -292,7 +292,7 @@
         .wp ZNEQU
     .wp EXIT
 
-    .ifcflag disk_ext
+    .ifcflag defer
         dword DEFER,5,,
             .wp CREATE
             .lit EXIT

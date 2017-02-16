@@ -7,10 +7,17 @@
 ;
 ;
 
+; Compile flags:
+; min      : Strip down to minimal level
+; disk_ext : Enable extended disk drive words
+; math_ext : Enable additional math words
+; dbl_size : Enable support for 32-bit integers [beta]
+; defer    : Enable support for deferred words
+
     .macro .wp num
         db ${num}, ^${num}
     .endm
-    
+
     .macro .lit num
         .wp LIT
         .wp ${num}

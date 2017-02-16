@@ -68,7 +68,7 @@
         .wp EXIT
     .endif
 
-    .ifncflag disk_ext
+    .ifncflag dbl_size
         dword N>S,3,,NUM_TOSTRING ; ( value -- length address )
             .wp DUP
             .wp TOR
@@ -110,7 +110,7 @@
             .wp SWAP
         .wp EXIT
     .endif
-    .ifcflag disk_ext
+    .ifcflag dbl_size
         dword D>S,3,,DOUBLE_TOSTRING ; ( dvalue -- length address )
             .wp TWODUP
             .wp TWOTOR
@@ -149,9 +149,7 @@
             .wp INCR
             .wp SWAP
         .wp EXIT
-    .endif
 
-    .ifcflag disk_ext
         dword UD.R,4,,DPRINT_UNUM_ALIGN ; ( d align -- )
             .wp NROT ; align value
             .wp DOUBLE_TOSTRING ; align address length
@@ -194,7 +192,7 @@
     .endif
 
     dword U.R,3,,PRINT_UNUM_ALIGN ; ( value align -- )
-        .ifncflag disk_ext
+        .ifncflag dbl_size
             .wp SWAP ; align value
             .wp NUM_TOSTRING ; align address length
             .wp ROT ; address length align
@@ -205,7 +203,7 @@
             .wp SPACES ; address length
             .wp TYPE
         .endif
-        .ifcflag disk_ext
+        .ifcflag dbl_size
             .wp ZERO
             .wp SWAP
             .wp DPRINT_UNUM_ALIGN
@@ -214,17 +212,17 @@
 
     dword U.,2,,PRINT_UNUM ; ( value -- )
         .wp ZERO
-        .ifncflag disk_ext
+        .ifncflag dbl_size
             .wp PRINT_UNUM_ALIGN
             .wp SPACE
         .endif
-        .ifcflag disk_ext
+        .ifcflag dbl_size
             .wp DPRINT_UNUM
         .endif
     .wp EXIT
 
     dword .R,2,,PRINT_NUM_ALIGN ; ( value align -- )
-        .ifncflag disk_ext
+        .ifncflag dbl_size
             .wp SWAP ; align value
             .wp DUP ; align value value
             .wp ZLT ; align value cond
@@ -240,7 +238,7 @@
             .wp SWAP
             .wp PRINT_UNUM_ALIGN
         .endif
-        .ifcflag disk_ext
+        .ifcflag dbl_size
             .wp TOR
             .wp NUM_TODOUBLE
             .wp FROMR
@@ -249,12 +247,12 @@
     .wp EXIT
 
     dword .,1,,PRINT_NUM ; ( value -- )
-        .ifncflag disk_ext
+        .ifncflag dbl_size
             .wp ZERO
             .wp PRINT_NUM_ALIGN
             .wp SPACE
         .endif
-        .ifcflag disk_ext
+        .ifcflag dbl_size
             .wp NUM_TODOUBLE
             .wp DPRINT_NUM
         .endif

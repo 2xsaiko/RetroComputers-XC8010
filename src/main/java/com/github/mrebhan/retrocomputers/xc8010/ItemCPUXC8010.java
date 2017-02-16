@@ -3,8 +3,10 @@ package com.github.mrebhan.retrocomputers.xc8010;
 import com.github.mrebhan.retrocomputers.api.ICPU;
 import com.github.mrebhan.retrocomputers.api.IComputerCase;
 import com.github.mrebhan.retrocomputers.api.ItemCPU;
-import io.netty.buffer.ByteBuf;
-import net.minecraft.item.ItemStack;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 
 public class ItemCPUXC8010 extends ItemCPU {
 
@@ -16,12 +18,12 @@ public class ItemCPUXC8010 extends ItemCPU {
     }
 
     @Override
-    public ICPU createCPU(IComputerCase arg1, ItemStack arg2) {
+    public ICPU createCPU(IComputerCase arg1, Object arg2) {
         return new ICPUWrapper(new CPUXC8010(arg1), amp);
     }
 
     @Override
-    public Class<? extends ICPU> getCPUClass(ItemStack arg0) {
+    public Class<? extends ICPU> getCPUClass(Object arg0) {
         return CPUXC8010.class;
     }
 
@@ -55,8 +57,8 @@ public class ItemCPUXC8010 extends ItemCPU {
         }
 
         @Override
-        public void deserialize(ByteBuf byteBuf) {
-            base.deserialize(byteBuf);
+        public void deserialize(DataInput dataInput) throws IOException {
+            base.deserialize(dataInput);
         }
 
         @Override
@@ -70,8 +72,8 @@ public class ItemCPUXC8010 extends ItemCPU {
         }
 
         @Override
-        public void serialize(ByteBuf byteBuf) {
-            base.serialize(byteBuf);
+        public void serialize(DataOutput dataOutput) throws IOException {
+            base.serialize(dataOutput);
         }
 
         @Override

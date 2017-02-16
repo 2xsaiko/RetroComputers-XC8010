@@ -37,6 +37,8 @@ public class ModCPUXC8010 {
                 new ResourceLocation("xc8010:extforth.bin"));
         DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:forth_disk_min",
                 new ResourceLocation("xc8010:minforth.bin"));
+        DiskRegistry.INSTANCE.registerSystemDisk("xc8010", "item.xc8010:source_decompiler",
+                new ResourceLocation("xc8010:decompiler.img"));
         if (e.getSide() == Side.CLIENT) {
             ModelLoader.setCustomModelResourceLocation(cpuItem, 0,
                     new ModelResourceLocation("xc8010:cpu", "inventory"));

@@ -138,7 +138,7 @@
         phd
     nxt
 
-    .ifcflag disk_ext
+    .ifcflag dbl_size
         dword DNEGATE,7,,
             .wp INVERT
             .wp SWAP
@@ -328,7 +328,7 @@
         rep #$30
     nxt
 
-    .ifcflag disk_ext
+    .ifcflag math_ext
     dword UNDER+,6,,UNDERADD ; ( a b c -- a+c b )
         .wp ROT
         .wp ADD

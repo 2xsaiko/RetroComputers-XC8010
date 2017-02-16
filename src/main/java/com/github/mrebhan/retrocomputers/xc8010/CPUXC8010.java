@@ -2,9 +2,10 @@ package com.github.mrebhan.retrocomputers.xc8010;
 
 import com.github.mrebhan.retrocomputers.api.ICPU;
 import com.github.mrebhan.retrocomputers.api.IComputerCase;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.util.ResourceLocation;
 
+import java.io.DataInput;
+import java.io.DataOutput;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -1131,43 +1132,43 @@ public class CPUXC8010 implements ICPU {
     }
 
     @Override
-    public void deserialize(ByteBuf buf) {
-        regA = buf.readShort() & 0xFFFF;
-        regB = buf.readShort() & 0xFFFF;
-        regX = buf.readShort() & 0xFFFF;
-        regY = buf.readShort() & 0xFFFF;
-        regI = buf.readShort() & 0xFFFF;
-        regD = buf.readShort() & 0xFFFF;
-        sp = buf.readShort() & 0xFFFF;
-        rp = buf.readShort() & 0xFFFF;
-        pc = buf.readShort() & 0xFFFF;
-        resetAddr = buf.readShort() & 0xFFFF;
-        brkAddr = buf.readShort() & 0xFFFF;
-        rbAddr = buf.readByte();
-        rbOffset = buf.readShort() & 0xFFFF;
-        rbEnabled = buf.readBoolean();
-        flags = buf.readShort();
-        timeout = buf.readBoolean();
+    public void deserialize(DataInput in) throws IOException {
+        regA = in.readUnsignedShort();
+        regB = in.readUnsignedShort();
+        regX = in.readUnsignedShort();
+        regY = in.readUnsignedShort();
+        regI = in.readUnsignedShort();
+        regD = in.readUnsignedShort();
+        sp = in.readUnsignedShort();
+        rp = in.readUnsignedShort();
+        pc = in.readUnsignedShort();
+        resetAddr = in.readUnsignedShort();
+        brkAddr = in.readUnsignedShort();
+        rbAddr = in.readByte();
+        rbOffset = in.readUnsignedShort();
+        rbEnabled = in.readBoolean();
+        flags = in.readShort();
+        timeout = in.readBoolean();
     }
 
     @Override
-    public void serialize(ByteBuf buf) {
-        buf.writeShort(regA);
-        buf.writeShort(regB);
-        buf.writeShort(regX);
-        buf.writeShort(regY);
-        buf.writeShort(regI);
-        buf.writeShort(regD);
-        buf.writeShort(sp);
-        buf.writeShort(rp);
-        buf.writeShort(pc);
-        buf.writeShort(resetAddr);
-        buf.writeShort(brkAddr);
-        buf.writeByte(rbAddr);
-        buf.writeShort(rbOffset);
-        buf.writeBoolean(rbEnabled);
-        buf.writeShort(flags);
-        buf.writeBoolean(timeout);
+    public void serialize(DataOutput out) throws IOException {
+        out.writeShort(regA);
+        out.writeShort(regB);
+        out.writeShort(regX);
+        out.writeShort(regY);
+        out.writeShort(regI);
+        out.writeShort(regD);
+        out.writeShort(sp);
+        out.writeShort(rp);
+        out.writeShort(pc);
+        out.writeShort(resetAddr);
+        out.writeShort(brkAddr);
+        out.writeByte(rbAddr);
+        out.writeShort(rbOffset);
+        out.writeBoolean(rbEnabled);
+        out.writeShort(flags);
+        out.writeBoolean(timeout);
     }
 
     @Override
