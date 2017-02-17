@@ -834,10 +834,6 @@ public class CPUXC8010 implements ICPU {
                 break;
             case 0x86:
                 regA = resetAddr & maskM();
-                break;
-            case 0xFF:
-                System.out.print("");
-                break;
         }
     }
 
