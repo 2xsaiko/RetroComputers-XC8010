@@ -1,7 +1,7 @@
 ; Forth OS (RCOS)
 
 ; Known bugs:
-;
+; TIMES breaks when stack is modified (ex. 10 TIMES DUP)
 ;
 ;
 ;
@@ -90,7 +90,6 @@ section 0_strings
     QUIT_promptb: db 'compile\: '
     COLD_linea: db 'RCOS v1.0'
     COLD_lineb: db 'bytes free.'
-    not_implemented: db 'Not implemented'
     
 section 1_dict
 

@@ -98,9 +98,8 @@
         .wp COMMA
     .wp EXIT
     POSTPONE_notimmed:
-        ; TODO, not implemented
-        .lit not_implemented
-        .lit 15
-        .wp TYPE
-        .wp ABORT
+        .wp TCFA
+        .comp LIT
+        .wp COMMA
+        .comp COMMA
     .wp EXIT
