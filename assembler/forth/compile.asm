@@ -59,7 +59,7 @@
     .wp EXIT
 
     dword (DOES>),7,,NDOES
-        ; replace ent DOVAR with jmp
+        ; replace ent DOVAR with jsr
         .wp LATEST
         .wp PEEK
         .wp TCFA
@@ -77,8 +77,7 @@
     .macro .does
         .wp NDOES
         .wp EXIT
-        db $22 ; ent WORD
-        .wp DOCOL
+        ent DOCOL
     .endm
 
     dword DOES>,5,F_IMMED+F_COMPILEONLY,DOES

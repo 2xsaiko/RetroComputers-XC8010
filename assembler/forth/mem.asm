@@ -1,14 +1,5 @@
     dconst CELL,4,,,$02
 
-    .ifncflag min
-        dcode CELLS,5,,
-            pla
-            clc
-            rol a
-            pha
-        nxt
-    .endif
-
     dcode !,1,,POKE ; ( value addr -- )
         lda $03, s
         ldy #$0000

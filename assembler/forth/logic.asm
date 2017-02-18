@@ -92,12 +92,12 @@
         .wp GT
     .wp EXIT
 
-    dword 0<=,2,,ZLE ; ( a -- a<=0 )
+    dword 0<=,3,,ZLE ; ( a -- a<=0 )
         .wp ZERO
         .wp LE
     .wp EXIT
 
-    dword 0>=,2,,ZGE ; ( a -- a>=0 )
+    dword 0>=,3,,ZGE ; ( a -- a>=0 )
         .wp ZERO
         .wp GE
     .wp EXIT
@@ -168,7 +168,7 @@
     nxt
 
     dcode RSHIFT,6,, ; ( a b -- a>>b )
-        ply ; get amount to rot left
+        ply ; get amount to rot right
         pla ; get number
     RSHIFT_loop:
         clc

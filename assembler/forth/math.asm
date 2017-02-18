@@ -329,9 +329,9 @@
     nxt
 
     .ifcflag math_ext
-    dword UNDER+,6,,UNDERADD ; ( a b c -- a+c b )
-        .wp ROT
-        .wp ADD
-        .wp SWAP
-    .wp EXIT
+        dword UNDER+,6,,UNDERADD ; ( a b c -- a+c b )
+            .wp ROT
+            .wp ADD
+            .wp SWAP
+        .wp EXIT
     .endif

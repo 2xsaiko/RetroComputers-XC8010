@@ -293,11 +293,20 @@
     .wp EXIT
 
     .ifcflag defer
+        .macro defer [name],namelen,flags=0,[label]=${name},pointer=EXIT
+            dcode ${name},${namelen},${flags},${label}
+            jsr defer_does
+            .wp ${pointer}
+        .endm
+
         dword DEFER,5,,
             .wp CREATE
             .lit EXIT
             .wp COMMA
-            .does
+            .wp NDOES
+            .wp EXIT
+        defer_does:
+            ent DOCOL
             .wp PEEK
             .wp EXECUTE
         .wp EXIT
@@ -311,5 +320,11 @@
         dword IS,2,,
             .wp _TICK
             .wp DEFER_SET
+        .wp EXIT
+
+        dword DEFER@,6,,DEFER_GET
+            .lit 3
+            .wp ADD
+            .wp PEEK
         .wp EXIT
     .endif

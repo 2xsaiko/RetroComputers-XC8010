@@ -42,6 +42,23 @@
     TICKS_end:
     nxt
 
+    .ifcflag defer
+        dword SYSBM,5,,ISTARTUP
+            .lit COLD_linea
+            .lit 9
+            .wp TYPE
+            .wp CR
+            .wp FREE
+            .wp PRINT_UNUM
+            .lit COLD_lineb
+            .lit 11
+            .wp TYPE
+            .wp CR
+        .wp EXIT
+
+        defer BOOTMESSAGE,11,,,ISTARTUP
+    .endif
+
     dword COLD,4,,
         .wp DECIMAL
         .wp GETXY
@@ -51,16 +68,21 @@
         .wp CR
     COLD_a:
         .wp CR
-        .lit COLD_linea
-        .lit 9
-        .wp TYPE
-        .wp CR
-        .wp FREE
-        .wp PRINT_UNUM
-        .lit COLD_lineb
-        .lit 11
-        .wp TYPE
-        .wp CR
+        .ifcflag defer
+            .wp BOOTMESSAGE
+        .endif
+        .ifncflag defer
+            .lit COLD_linea
+            .lit 9
+            .wp TYPE
+            .wp CR
+            .wp FREE
+            .wp PRINT_UNUM
+            .lit COLD_lineb
+            .lit 11
+            .wp TYPE
+            .wp CR
+        .endif
 
         .wp ABORT
 
