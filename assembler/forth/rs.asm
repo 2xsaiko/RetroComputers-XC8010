@@ -31,7 +31,7 @@
     .wp EXIT
 
     dword IOXRST,6,,
-        .wp NEGATE
+        .wp INVERT
         .wp IOXOPEEK
         .wp AND
         .wp IOXPOKE
