@@ -51,6 +51,11 @@
         ent DOCOL
     .endm
 
+    .macro unnamed_word [label]
+        ${label}:
+            ent DOCOL
+    .endm
+
     .macro dvar [name],namelen,flags=0,[label]=${name},value=0
             dcode ${name},${namelen},${flags},${label}
             ent DOVAR
@@ -71,6 +76,16 @@
             .set wptr, name_marker
             db F_HIDDEN
         marker:
+    .endm
+
+    .macro .branch location
+        .wp BRANCH
+        .wp ${location}
+    .endm
+
+    .macro .zbranch location
+        .wp ZBRANCH
+        .wp ${location}
     .endm
 
 ;   .macro callf word

@@ -105,8 +105,7 @@
     dword MIN,3,, ; ( a b -- {a|b} )
         .wp TWODUP ; a b a b
         .wp LT ; a b ?a<b
-        .wp ZBRANCH
-        .wp MIN_b
+        .zbranch MIN_b
         .wp DROP
     .wp EXIT
     MIN_b:
@@ -116,8 +115,7 @@
     dword MAX,3,, ; ( a b -- {a|b} )
         .wp TWODUP ; a b a b
         .wp LT ; a b ?a<b
-        .wp ZBRANCH
-        .wp MAX_b
+        .zbranch MAX_b
         .wp NIP
     .wp EXIT
     MAX_b:

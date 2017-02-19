@@ -33,8 +33,7 @@
     dword ",1,F_IMMED,PUTSTR
         .wp STATE
         .wp PEEK
-        .wp ZBRANCH
-        .wp PUTSTR_immed
+        .zbranch PUTSTR_immed
         .comp LITSTRING
         .lit $22
         .wp PARSE ; addr len
@@ -94,10 +93,8 @@
             .wp POKEBYTE ; result counter
             .wp INCR ; result counter+1
             .wp OVER ; result counter+1 result
-            .wp ZBRANCH
-            .wp PN_end
-            .wp BRANCH
-            .wp PN_loop
+            .zbranch PN_end
+            .branch PN_loop
         PN_end:
             .wp SWAP ; counter result
             .wp DROP ; counter
@@ -134,10 +131,8 @@
             .wp POKEBYTE ; result counter
             .wp INCR ; result counter+1
             .wp OVER ; result counter+1 result
-            .wp ZBRANCH
-            .wp PN_end
-            .wp BRANCH
-            .wp PN_loop
+            .zbranch PN_end
+            .branch PN_loop
         PN_end:
             .wp SWAP ; counter result
             .wp DROP ; counter
@@ -171,8 +166,7 @@
         dword D.R,3,,DPRINT_NUM_ALIGN
             .wp DUP ; align value msb
             .wp ZLT ; align value cond
-            .wp ZBRANCH ; align value
-            .wp PN_notneg
+            .zbranch PN_notneg ; align value
             .lit $2d
             .wp EMIT
             .wp DNEGATE
@@ -226,8 +220,7 @@
             .wp SWAP ; align value
             .wp DUP ; align value value
             .wp ZLT ; align value cond
-            .wp ZBRANCH ; align value
-            .wp PN_notneg
+            .zbranch PN_notneg ; align value
             .lit $2d
             .wp EMIT
             .wp NEGATE
@@ -271,8 +264,7 @@
         .endif
 
         .wp DEPTH
-        .wp ZBRANCH
-        .wp PS_nostack
+        .zbranch PS_nostack
 
         .wp SPORIG
         .wp DECR
@@ -290,10 +282,8 @@
         .wp FROMR
         .wp DECR
         .wp DUP
-        .wp ZBRANCH
-        .wp PS_end
-        .wp BRANCH
-        .wp PS_loop
+        .zbranch PS_end
+        .branch PS_loop
     PS_end:
         .wp TWODROP
     PS_nostack:

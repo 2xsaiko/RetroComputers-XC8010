@@ -63,8 +63,7 @@
         .wp DECIMAL
         .wp GETXY
         .wp DROP
-        .wp ZBRANCH
-        .wp COLD_a
+        .zbranch COLD_a
         .wp CR
     COLD_a:
         .wp CR
@@ -106,10 +105,8 @@
         .wp CR
         .wp STATE
         .wp PEEK
-        .wp ZBRANCH
-        .wp QUIT_pis
-        .wp BRANCH
-        .wp QUIT_pcs
+        .zbranch QUIT_pis
+        .branch QUIT_pcs
     QUIT_cont:
 
         .lit $80
@@ -122,18 +119,15 @@
         .lit 3
         .wp TYPE
 
-        .wp BRANCH ; loop infinitely
-        .wp QUIT_loop ; ($fffa = -6)
+        .branch QUIT_loop ; loop infinitely
 
     QUIT_pis:
         .lit QUIT_prompta
         .lit 2
         .wp TYPE
-        .wp BRANCH
-        .wp QUIT_cont
+        .branch QUIT_cont
     QUIT_pcs:
         .lit QUIT_promptb
         .lit 9
         .wp TYPE
-        .wp BRANCH
-        .wp QUIT_cont
+        .branch QUIT_cont

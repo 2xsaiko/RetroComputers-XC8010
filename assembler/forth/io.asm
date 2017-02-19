@@ -18,15 +18,13 @@
 
         .wp WORD
         .wp SHOULDSKIP
-        .wp ZBRANCH
-        .wp INTERPRET_end
+        .zbranch INTERPRET_end
 
         .wp TWODUP ; w-a w-l w-a w-l
 
         .wp FIND ; w-a w-l addr
         .wp DUP ; w-a w-l addr addr
-        .wp ZBRANCH ; w-a w-l addr
-        .wp INTERPRET_wordnotfound
+        .zbranch INTERPRET_wordnotfound
 
         .wp DUP ; w-a w-l addr addr
         .wp ISCOMPONLY ; w-a w-l addr cond
@@ -35,8 +33,7 @@
         .wp ZEQU
         .wp AND ; w-a w-l addr cond
         .wp INVERT
-        .wp ZBRANCH ; w-a w-l addr
-        .wp INTERPRET_throwic
+        .zbranch INTERPRET_throwic
 
         .wp NIP ; w-a addr
         .wp NIP ; addr
@@ -47,15 +44,12 @@
         .wp PEEK
         .wp ZEQU
         .wp OR
-        .wp ZBRANCH
-        .wp INTERPRET_cword
+        .zbranch INTERPRET_cword
 
         .wp TCFA ; addr
         .wp EXECUTE
 
-    INTERPRET_cword_return:
-        .wp BRANCH
-        .wp INTERPRET_loop
+        .branch INTERPRET_loop
 
     INTERPRET_wordnotfound:
 
@@ -63,22 +57,15 @@
         .wp TWODUP ; w-a w-l w-a w-l
         .wp NUMBER ; w-a w-l result upcc
         .wp ZEQU ; w-a w-l result cond
-        .wp ZBRANCH ; w-a w-l result
-        .wp INTERPRET_notanumber
+        .zbranch INTERPRET_notanumber ; w-a w-l result
 
         .wp NIP ; w-a result
         .wp NIP ; result
 
         .wp STATE
         .wp PEEK
-        .wp ZBRANCH
-        .wp INTERPRET_compilenum_ret
-        .wp BRANCH
-        .wp INTERPRET_compilenum
-    INTERPRET_compilenum_ret:
-
-        .wp BRANCH
-        .wp INTERPRET_loop
+        .zbranch INTERPRET_loop
+        .branch INTERPRET_compilenum
 
     INTERPRET_notanumber:
         .wp DROP
@@ -94,8 +81,7 @@
         .wp DEPTH
         .wp ZERO
         .wp LT
-        .wp ZBRANCH
-        .wp INTERPRET_checka
+        .zbranch INTERPRET_checka
         .lit INTERPRET_textb
         .lit 11
         .wp TYPE
@@ -106,8 +92,7 @@
         .wp DEPTH
         .lit 127
         .wp GT
-        .wp ZBRANCH
-        .wp INTERPRET_checkb
+        .zbranch INTERPRET_checkb
         .lit INTERPRET_textc
         .lit 14
         .wp TYPE
@@ -125,14 +110,12 @@
     INTERPRET_cword:
         .wp TCFA
         .wp COMMA
-        .wp BRANCH
-        .wp INTERPRET_cword_return
+        .branch INTERPRET_loop
 
     INTERPRET_compilenum:
         .comp LIT
         .wp COMMA
-        .wp BRANCH
-        .wp INTERPRET_compilenum_ret
+        .branch INTERPRET_loop
 
     INTERPRET_throwic:
         .wp DROP
@@ -161,11 +144,9 @@
         .wp PEEKBYTE
         .wp BL
         .wp EQU
-        .wp ZBRANCH
-        .wp WORD_noblank
+        .zbranch WORD_noblank
         .wp DROP
-        .wp BRANCH
-        .wp WORD_loop_a
+        .branch WORD_loop_a
     WORD_noblank:
 
         .wp ZERO
@@ -177,8 +158,7 @@
         .lit $22
         .wp PEEK
         .wp GE
-        .wp ZBRANCH
-        .wp WORD_continue
+        .zbranch WORD_continue
         .wp EXIT
     WORD_continue:
 
@@ -189,14 +169,7 @@
         .lit $28
         .wp PEEKBYTE
         .wp EQU
-        .wp ZBRANCH
-        .wp WORD_noblank_b
-        .wp EXIT
-    WORD_noblank_b:
-
-        .wp BRANCH
-        .wp WORD_loop_b
-
+        .zbranch WORD_loop_b
     .wp EXIT
 
     dword KEY>DIGIT,9,,KEYTODIGIT ; ( char(a) -- a )
@@ -207,8 +180,7 @@
         .wp DUP
         .lit $10
         .wp GT
-        .wp ZBRANCH
-        .wp KD_nooffset
+        .zbranch KD_nooffset
         .lit 7
         .wp SUB
     KD_nooffset:
@@ -218,8 +190,7 @@
         .wp DUP
         .lit 9
         .wp GT
-        .wp ZBRANCH
-        .wp DK_nooffset
+        .zbranch DK_nooffset
         .lit 7
         .wp ADD
     DK_nooffset:
@@ -237,8 +208,7 @@
         .wp POKE
 
         .wp DUP ; w-a w-l w-l
-        .wp ZBRANCH
-        .wp NUMBER_zerolength
+        .zbranch NUMBER_zerolength
 
         .wp BASE
         .wp PEEK ; w-a w-l base
@@ -250,8 +220,7 @@
         .wp EQU
 
         .wp DUP ; w-l base w-a cond cond
-        .wp ZBRANCH
-        .wp NUMBER_notneg
+        .zbranch NUMBER_notneg
         .wp GDL
         .wp DROP ; skip char from parsing
         .wp TWOTOR
@@ -284,13 +253,11 @@
         .wp KEYTODIGIT ; w-a base newv base digit
         .wp DUP ; w-a base newv base digit digit
         .wp ZGE
-        .wp ZBRANCH ; w-a base newv base digit
-        .wp NUMBER_invalidchara
+        .zbranch NUMBER_invalidchara ; w-a base newv base digit
         .wp DUP ; w-a base newv base digit digit
         .wp NROT ; w-a base newv digit base digit
         .wp GT
-        .wp ZBRANCH ; w-a base newv digit
-        .wp NUMBER_invalidcharb
+        .zbranch NUMBER_invalidcharb ; w-a base newv digit
 
         .wp ADD ; w-a base newv+digit
         .lit $26
@@ -302,16 +269,14 @@
         .wp INCR ; base w-a w-l i+1
         .wp TWODUP ; base w-a w-l i+1 w-l i+1
         .wp EQU ; base w-a w-l i+1 cond
-        .wp ZBRANCH ; base w-a w-l i+1
-        .wp NUMBER_loop
+        .zbranch NUMBER_loop ; base w-a w-l i+1
         .wp TWODROP ; base w-a
         .wp TWODROP ;
 
         .lit $26
         .wp PEEK ; value
         .wp FROMR ; value cond
-        .wp ZBRANCH ; value
-        .wp NUMBER_notneg_b
+        .zbranch NUMBER_notneg_b ; value
         .wp NEGATE ; -value
     NUMBER_notneg_b:
         .lit 0 ; value 0
@@ -351,17 +316,14 @@
 
     dword (?SKIP),7,F_HIDDEN,SHOULDSKIP
         .wp DUP
-        .wp ZBRANCH
-        .wp SKIP_yes
+        .zbranch SKIP_yes
 
         .wp OVER
         .lit $22
         .wp PEEK
         .wp LT
-        .wp ZBRANCH
-        .wp SKIP_yes
-        .wp BRANCH
-        .wp SKIP_no
+        .zbranch SKIP_yes
+        .branch SKIP_no
     SKIP_yes:
         .wp FALSE
         .wp EXIT

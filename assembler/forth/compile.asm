@@ -91,8 +91,7 @@
         .wp _HTICK
         .wp DUP
         .wp ISIMMEDIATE
-        .wp ZBRANCH
-        .wp POSTPONE_notimmed
+        .zbranch POSTPONE_notimmed
         .wp TCFA
         .wp COMMA
     .wp EXIT

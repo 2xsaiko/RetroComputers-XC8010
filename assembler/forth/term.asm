@@ -67,9 +67,12 @@
         pha
     nxt
 
+    ;unnamed_word handle_backspace
+
+    ;.wp EXIT
+
     dword ACCEPT,6,,ACCEPT ; ( c-addr maxlength -- read )
-        .wp TOR
-        .wp TOR
+        .wp TWOTOR
 
         .wp ZERO
     RL_loop:
@@ -78,8 +81,7 @@
         .wp DUP
         .lit _F_RETURN
         .wp EQU
-        .wp ZBRANCH
-        .wp RL_a
+        .zbranch RL_a
         .wp DROP
         .wp RDROP
         .wp RDROP
@@ -89,16 +91,13 @@
         .wp DUP
         .lit _F_BACKSPACE
         .wp EQU
-        .wp ZBRANCH
-        .wp RL_b
+        .zbranch RL_b
         .wp DROP
         .wp DUP
-        .wp ZBRANCH
-        .wp RL_loop
+        .zbranch RL_loop
         .wp GETXY
         .wp DROP
-        .wp ZBRANCH
-        .wp RL_loop
+        .zbranch RL_loop
         .wp GETXY
         .wp SWAP
         .wp DECR
@@ -108,8 +107,7 @@
         .wp SPACE
         .wp SETXY
         .wp DECR
-        .wp BRANCH
-        .wp RL_loop
+        .branch RL_loop
     RL_b:
         .wp OVER
         .wp FROMR
@@ -119,11 +117,9 @@
         .wp TOR
         .wp TOR
         .wp EQU
-        .wp ZBRANCH
-        .wp RL_c
+        .zbranch RL_c
         .wp DROP
-        .wp BRANCH
-        .wp RL_loop
+        .branch RL_loop
     RL_c:
 
         .wp DUP
@@ -133,8 +129,7 @@
         .wp ADD
         .wp POKEBYTE
         .wp INCR
-        .wp BRANCH
-        .wp RL_loop
+        .branch RL_loop
     ;.wp EXIT
 
     dcode EMIT,4,, ; ( char -- )
@@ -238,8 +233,7 @@
 
     dword TYPE,4,, ; ( address length -- )
         .wp DUP
-        .wp ZBRANCH
-        .wp TYPE_zerolength
+        .zbranch TYPE_zerolength
 
         .wp ZERO
     TYPE_loop:
@@ -253,8 +247,7 @@
         .wp INCR
         .wp TWODUP
         .wp EQU
-        .wp ZBRANCH
-        .wp TYPE_loop
+        .zbranch TYPE_loop
         .wp DROP
     TYPE_zerolength:
         .wp TWODROP
@@ -271,16 +264,14 @@
         .wp TOR
     SPACES_loop:
         .wp RFETCH
-        .wp ZBRANCH
-        .wp SPACES_end
+        .zbranch SPACES_end
 
         .wp SPACE
 
         .wp FROMR
         .wp DECR
         .wp TOR
-        .wp BRANCH
-        .wp SPACES_loop
+        .branch SPACES_loop
     SPACES_end:
         .wp RDROP
     .wp EXIT

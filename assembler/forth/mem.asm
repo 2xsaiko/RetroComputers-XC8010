@@ -69,50 +69,43 @@
 
         .lit $2000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $3FFF
 
         .lit $4000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $5FFF
 
         .lit $6000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $7FFF
 
         .lit $8000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $9FFF
 
         .lit $a000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $BFFF
 
         .lit $c000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $DFFF
 
         .lit $e000
         .wp MEMTEST
-        .wp ZBRANCH
-        .wp FREE_end
+        .zbranch FREE_end
         .wp DROP
         .lit $FFFF
 
@@ -146,8 +139,7 @@
         .wp DUP
         .wp FREE
         .wp ULE
-        .wp ZBRANCH
-        .wp ALLOT_outofmemory
+        .zbranch ALLOT_outofmemory
         .wp HERE
         .wp TUCK
         .wp ADD
@@ -218,14 +210,12 @@
     dword STRCMP,6,, ; ( addr1 addr2 -- matching-length )
         .wp TWODUP
         .wp NEQU
-        .wp ZBRANCH
-        .wp STRCMP_equaddr
+        .zbranch STRCMP_equaddr
 
         .wp ZERO
         .wp TOR
 
     STRCMP_loop:
-
         .wp TWODUP ; addr1 addr2 addr1 addr2
         .wp RFETCH ; addr1 addr2 addr1 addr2 index
         .wp ADD ; addr1 addr2 addr1 loc2
@@ -235,13 +225,11 @@
         .wp ADD ; addr1 addr2 value2 loc1
         .wp PEEKBYTE ; addr1 addr2 value2 value1
         .wp EQU
-        .wp ZBRANCH ; addr1 addr2
-        .wp STRCMP_noequ
+        .zbranch STRCMP_noequ
         .wp FROMR
         .wp INCR
         .wp TOR
-        .wp BRANCH
-        .wp STRCMP_loop
+        .branch STRCMP_loop
 
     STRCMP_noequ:
         .wp TWODROP

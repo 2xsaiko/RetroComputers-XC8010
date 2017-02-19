@@ -55,10 +55,8 @@
         .lit $80
         .wp UDIV ; i i max
         .wp LE ; i cond
-        .wp ZBRANCH ; i
-        .wp SAVE_end
-        .wp BRANCH
-        .wp SAVE_loop
+        .zbranch SAVE_end ; i
+        .branch SAVE_loop
     SAVE_end:
         .wp DROP
     .wp EXIT
@@ -68,8 +66,7 @@
         dword BLKBUF,6,,
             .lit BLKBUF_INT
             .wp PEEK
-            .wp ZBRANCH
-            .wp BLKBUF_allot
+            .zbranch BLKBUF_allot
             .lit BLKBUF_INT
             .wp PEEK
         .wp EXIT
@@ -139,10 +136,8 @@
                 .wp DUP ; origin i i
                 .lit 8
                 .wp LT ; origin i cond
-                .wp ZBRANCH ; origin i
-                .wp REVERT_end
-                .wp BRANCH
-                .wp REVERT_loop
+                .zbranch REVERT_end ; origin i
+                .branch REVERT_loop
         REVERT_end:
                 .wp TWODROP
         .wp EXIT
@@ -181,10 +176,8 @@
             .wp DUP ; origin i i
             .lit 8
             .wp LT ; origin i cond
-            .wp ZBRANCH ; origin i
-            .wp FLUSH_end
-            .wp BRANCH
-            .wp FLUSH_loop
+            .zbranch FLUSH_end ; origin i
+            .branch FLUSH_loop
         FLUSH_end:
             .wp TWODROP
         .wp EXIT
@@ -214,8 +207,7 @@
             .wp DUP
             .lit 16
             .wp EQU
-            .wp ZBRANCH
-            .wp LIST_loop
+            .zbranch LIST_loop
             .wp DROP
         .wp EXIT
 
@@ -277,10 +269,8 @@
             .wp DUP
             .lit 16
             .wp LT
-            .wp ZBRANCH
-            .wp LOAD_end
-            .wp BRANCH
-            .wp LOAD_loop
+            .zbranch LOAD_end
+            .branch LOAD_loop
         LOAD_end:
             .wp DROP
             .wp FROMR

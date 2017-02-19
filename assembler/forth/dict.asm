@@ -32,9 +32,7 @@
     FIND_loop:
 
         .wp DUP
-        .wp ZNEQU
-        .wp ZBRANCH
-        .wp FIND_notfound
+        .zbranch FIND_notfound
 
         .wp DUP ; w-a w-l addr addr
         .wp INCRTWO
@@ -47,8 +45,7 @@
         .wp DUP ; w-a addr length w-l w-l
         .wp ROT ; w-a addr w-l w-l length
         .wp EQU
-        .wp ZBRANCH ; w-a addr w-l
-        .wp FIND_notequal
+        .zbranch FIND_notequal ; w-a addr w-l
 
         .wp TOR ; w-a addr
         .wp TWODUP ; w-a addr w-a addr
@@ -59,8 +56,7 @@
         .wp DUP ; w-a addr len w-l w-l
         .wp ROT ; w-a addr w-l w-l len
         .wp LE
-        .wp ZBRANCH ; w-a addr w-l
-        .wp FIND_notequal
+        .zbranch FIND_notequal ; w-a addr w-l
 
         ; Found
 
@@ -71,8 +67,7 @@
     FIND_notequal:
         .wp SWAP
         .wp PEEK
-        .wp BRANCH
-        .wp FIND_loop
+        .branch FIND_loop
     .wp EXIT
 
     FIND_notfound:
@@ -86,8 +81,7 @@
         .wp TWODUP
         .wp FIND
         .wp DUP
-        .wp ZBRANCH
-        .wp TICK_notfound
+        .zbranch TICK_notfound
         .wp NIP
         .wp NIP
     .wp EXIT
@@ -243,8 +237,7 @@
 
         .wp DUP ; addr addr
         .wp ZNEQU ; addr cond
-        .wp ZBRANCH ; addr
-        .wp WORDS_end
+        .zbranch WORDS_end ; addr
 
         .wp DUP ; addr addr
         .wp INCRTWO ; addr flagaddr
@@ -253,8 +246,7 @@
         .lit F_HIDDEN
         .wp AND ; addr flags hidden
         .wp ZEQU
-        .wp ZBRANCH ; addr flags
-        .wp WORDS_hidden
+        .zbranch WORDS_hidden
         .lit F_LENMASK
         .wp AND ; addr length
         .wp OVER ; addr length addr
@@ -265,16 +257,14 @@
         .wp SPACE
     WORDS_hidden_return:
         .wp PEEK ; newaddr
-        .wp BRANCH
-        .wp WORDS_loop
+        .branch WORDS_loop
     WORDS_end:
         .wp DROP
     .wp EXIT
 
     WORDS_hidden:
         .wp DROP ; addr
-        .wp BRANCH
-        .wp WORDS_hidden_return
+        .branch WORDS_hidden_return
 
     dword ?COMPILE-ONLY,13,,ISCOMPONLY ; ( address -- cond )
         .wp INCRTWO

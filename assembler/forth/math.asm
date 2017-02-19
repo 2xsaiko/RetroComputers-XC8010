@@ -125,8 +125,7 @@
     dword ABS,3,, ; ( a -- |a| )
         .wp DUP
         .wp ZGE
-        .wp ZBRANCH
-        .wp ABS_noaction
+        .zbranch ABS_noaction
         .wp NEGATE
     ABS_noaction:
     .wp EXIT
