@@ -13,12 +13,8 @@ class Processor extends ProcessorLike {
 
   private def mem = memoryProvider
 
-  private var rA: Short = 0
   private var rB: Byte = 0
-  private var rX: Short = 0
-  private var rY: Short = 0
   private var rI: Short = 0
-  private var rD: Short = 0
   private var sp: Short = 0
   private var rp: Short = 0
   private var pc: Short = 0
@@ -26,6 +22,18 @@ class Processor extends ProcessorLike {
   private var brkAddr: Short = 0
   private var flags: Short = 0
   private var _timeout: Boolean = false
+
+  private var busOffset: Short = 0
+  private var busEnabled: Boolean = false
+
+  private def rA: Short = hidden.rA & maskM
+  private def rA_=(s: Short): Unit = hidden.rA = s
+  private def rD: Short = hidden.rD & maskM
+  private def rD_=(s: Short): Unit = hidden.rD = s
+  private def rX: Short = hidden.rX & maskX
+  private def rX_=(s: Short): Unit = hidden.rX = s
+  private def rY: Short = hidden.rA & maskX
+  private def rY_=(s: Short): Unit = hidden.rY = s
 
   override def reset(hard: Boolean): Unit = {
     if (hard) {
@@ -73,6 +81,8 @@ class Processor extends ProcessorLike {
     out.short("ba") := brkAddr
     out.short("f") := flags
     out.boolean("t") := _timeout
+    out.short("bo") := busOffset
+    out.boolean("be") := busEnabled
   }
 
   override def deserialize(in: NBTCompoundLike): Unit = {
@@ -89,6 +99,8 @@ class Processor extends ProcessorLike {
     brkAddr = in.short("ba")
     flags = in.short("f")
     _timeout = in.boolean("t")
+    busOffset = in.short("bo")
+    busEnabled = in.boolean("be")
   }
 
   override def timeout(): Unit = _timeout = true
@@ -139,6 +151,248 @@ class Processor extends ProcessorLike {
       pc = pc2()
     case 0x23 => // and r, S
       i.and(peekM(pc1S()))
+    case 0x28 => // plp
+      setFlags(pop1())
+    case 0x2A => // rol a
+      rA = i.rol(rA)
+    case 0x2B => // rli
+      rI = popr2()
+      sNXZ(rI)
+    case 0x30 => // bmi rel
+      i.bra(pc1(), N)
+    case 0x3D => // and abs, x
+      i.and(peekM(pc2X()))
+    case 0x38 => // sec
+      ↑(C)
+    case 0x3A => // dec a
+      rA -= 1
+      sNZ(rA)
+    case 0x3F => // mul abs, x
+      i.mul(peekM(pc2X()))
+    case 0x42 => // nxa
+      rA = peekM(rI)
+      rI += (if (M) 1 else 2)
+    case 0x43 => // eor r, S
+      i.eor(pc1S())
+    case 0x45 => // eor zp
+      i.eor(peekM(pc1()))
+    case 0x48 => // pha
+      pushM(rA)
+    case 0x49 => // eor #
+      i.eor(pcM())
+    case 0x4B => // rha
+      pushrM(rA)
+    case 0x4C => // jmp abs
+      pc = pc2()
+    case 0x50 => // bvc rel
+      i.bra(pc1(), !V)
+    case 0x5A => // phy
+      pushX(rY)
+    case 0x5B => // rhy
+      pushrX(rY)
+    case 0x5C => // txi
+      rI = rX
+      sNXZ(rX)
+    case 0x60 => // rts
+      pc = pop2()
+    case 0x63 => // adc r, S
+      i.adc(peekM(pc1S()))
+    case 0x64 => // stz zp
+      i.stz(pc1())
+    case 0x65 => // adc zp
+      i.adc(peekM(pc1()))
+    case 0x68 => // pla
+      rA = popM()
+      sNZ(rA)
+    case 0x69 => // adc #
+      i.adc(pcM())
+    case 0x6A => // ror a
+      rA = i.ror(rA)
+    case 0x6B => // rla
+      rA = poprM()
+      sNZ(rA)
+    case 0x6D => // adc abs
+      i.adc(peekM(pc2()))
+    case 0x70 => // bvs rel
+      i.bra(pc1(), V)
+    case 0x74 => // stz zp, x
+      i.stz(pc1X())
+    case 0x7A => // ply
+      rY = popX()
+      sNXZ(rY)
+    case 0x7B => // rly
+      rY = poprX()
+      sNXZ(rY)
+    case 0x7C => // jmp (ind, x)
+      pc = pc2IX()
+    case 0x7D => // adc abs, x
+      i.adc(peekM(pc2X()))
+    case 0x7F => // div abs, x
+      i.div(peekM(pc2X()))
+    case 0x80 => // bra rel
+      i.bra(pc1(), true)
+    case 0x84 => // sty zp
+      i.sty(pc1())
+    case 0x85 => // sta zp
+      i.sta(pc1())
+    case 0x86 => // stx zp
+      i.stx(pc1())
+    case 0x88 => // dey
+      rY -= 1
+      sNXZ(rY)
+    case 0x89 => // bit #
+      Z := !(rA & pcM())
+    case 0x8A => // txa
+      rA = rX
+      sNZ(rA)
+    case 0x8B => // txr
+      rp = rX
+      sNXZ(rX)
+    case 0x8C => // sty abs
+      i.sty(pc2())
+    case 0x8D => // sta abs
+      i.sta(pc2())
+    case 0x8E => // stx abs
+      i.stx(pc2())
+    case 0x90 => // bcc rel
+      i.bra(pc1(), !C)
+    case 0x91 => // sta (ind), y
+      i.sta(pc2IY())
+    case 0x92 => // sta (ind)
+      i.sta(pc2I())
+    case 0x93 => // sta (r, S), y
+      i.sta(pc2ISY())
+    case 0x94 => // sty zp, x
+      i.sty(pc1X())
+    case 0x95 => // sta zp, x
+      i.sta(pc1X())
+    case 0x98 => // tya
+      rA = rY
+    case 0x99 => // sta abs, y
+      i.sta(pc2Y())
+    case 0x9A => // txs
+      sp = rX
+    case 0x9C => // stz abs
+      i.stz(pc2())
+    case 0x9D => // sta abs, x
+      i.sta(pc2X())
+    case 0x9E => // stz abs, x
+      i.stz(pc2X())
+    case 0x9F => // sea
+      rD = 0
+      if ((M && rA.toByte < 0) || (!M && rA < 0)) rD = maskM
+    case 0xA0 => // ldy #
+      i.ldy(pcX())
+    case 0xA2 => // ldx #
+      i.ldx(pcX())
+    case 0xA3 => // lda r, S
+      i.lda(peekM(pc1S()))
+    case 0xA5 => // lda zp
+      i.lda(peekM(pc1()))
+    case 0xA7 => // lda r, R
+      i.lda(peekM(pc1R()))
+    case 0xA8 => // tay
+      rY = rA
+      sNXZ(rY)
+    case 0xA9 => // lda #
+      i.lda(pcM())
+    case 0xAA => // tax
+      rX = rA
+      sNXZ(rX)
+    case 0xAD => // lda abs
+      i.lda(peekM(pc2()))
+    case 0xAE => // ldx abs
+      i.ldx(peekM(pc2()))
+    case 0xB0 => // bcs rel
+      i.bra(pc1(), C)
+    case 0xB1 => // lda (ind), y
+      i.lda(peekM(pc2IY()))
+    case 0xB3 => // lda (r, S), y
+      i.lda(peekM(pc2ISY()))
+    case 0xB9 => // lda abs, y
+      i.lda(peekM(pc2Y()))
+    case 0xBA => // tsx
+      rX = sp
+      sNXZ(rX)
+    case 0xBD => // lda abs, x
+      i.lda(peekM(pc2X()))
+    case 0xC0 => // cpy #
+      i.cmpx(rY, pcX())
+    case 0xC2 => // rep #
+      i.rep(pc1())
+    case 0xC3 => // cmp r, S
+      i.cmp(rA, peekM(pc1S()))
+    case 0xC6 => // dec zp
+      i.dec(pc1())
+    case 0xC8 => // iny
+      rY += 1
+      sNXZ(rY)
+    case 0xC9 => // cmp #
+      i.cmp(rA, pcM())
+    case 0xCA => // dex
+      rX -= 1
+      sNXZ(rX)
+    case 0xCB => // wai
+      timeout()
+    case 0xCF => // pld
+      rD = popM()
+    case 0xD0 => // bne rel
+      i.bra(pc1(), !Z)
+    case 0xDA => // phx
+      pushX(rX)
+    case 0xDB => // stp
+      mem.halt()
+    case 0xDC => // tix
+      rX = rI
+      sNXZ(rX)
+    case 0xDD => // cmp abs, x
+      i.cmp(rA, peekM(pc2X()))
+    case 0xDE => // dec abs, x
+      i.dec(pc2X())
+    case 0xDF => // phd
+      pushM(rD)
+    case 0xE2 => // sep #
+      i.sep(pc1())
+    case 0xE3 => // sbc s, R
+      i.sbc(peekM(pc1S()))
+    case 0xE6 => // inc zp
+      i.inc(pc1())
+    case 0xEB => // xba
+      if (M) {
+        val b = rB
+        rB = rA
+        rA = b
+      } else {
+        val a = rA << 8
+        val b = rA >> 8 & 0xFF
+        rA = a | b
+      }
+    case 0xEE => // inc abs
+      i.inc(pc2())
+    case 0xEF => // mmu
+      i.mmu(pc1())
+    case 0xF0 => // beq rel
+      i.bra(pc1, Z)
+    case 0xFA => // plx
+      rX = popX()
+      sNXZ(rX)
+    case 0xFB => // xce
+      if (isup(C) != isup(E)) {
+        if (C) {
+          ↓(C)
+          ↑(E, X)
+          if (!M) rB = rA >> 8
+          ↑(M)
+        } else {
+          ↑(C)
+          ↓(E)
+        }
+      }
+    case 0xFE => // inc abs, x
+      i.inc(pc2X())
+    case insn =>
+      printf("Invalid opcode: %02x at %04x%n", insn, pc - 1)
+      mem.halt()
   }
 
   // Read from PC
@@ -347,7 +601,7 @@ class Processor extends ProcessorLike {
       if (C) i += 1
       C := i > maskM
       V := (data ^ i) & (rA ^ i) & negM
-      rA = i & maskM
+      rA = i
       sNZ(rA)
     }
 
@@ -357,7 +611,7 @@ class Processor extends ProcessorLike {
       if (!C) i -= 1
       C := (i & maskM + 1) == 0
       V := (maskM - data ^ i) & (rA ^ i) & negM
-      rA = i & maskM
+      rA = i
       sNZ(rA)
     }
 
@@ -377,15 +631,15 @@ class Processor extends ProcessorLike {
       if (C) {
         if (M) {
           val c: Int = (rA & 0xFF) * (data & 0xFF)
-          rA = c & 0xFF
-          rD = (c >> 8) & 0xFF
+          rA = c
+          rD = c >> 8
           N := false
           Z := c == 0
           V := c & 0xFFFF0000
         } else {
           val c: Long = (rA & 0xFFFF) * (data & 0xFFFF)
-          rA = c & 0xFFFF
-          rD = (c >> 16) & 0xFFFF
+          rA = c
+          rD = c >> 16
           N := false
           Z := c == 0
           V := c & 0xFFFFFFFF00000000L
@@ -393,19 +647,53 @@ class Processor extends ProcessorLike {
       } else {
         if (M) {
           val c: Int = rA * data
-          rA = c & 0xFF
-          rD = (c >> 8) & 0xFF
+          rA = c
+          rD = c >> 8
           N := c < 0
           Z := c == 0
           V := c & 0xFFFF0000
         } else {
           val c: Long = rA * data
-          rA = c & 0xFFFF
-          rD = (c >> 16) & 0xFFFF
+          rA = c
+          rD = c >> 16
           N := c < 0
           Z := c == 0
           V := c & 0xFFFFFFFF00000000L
         }
+      }
+    }
+
+    def div(data: Short): Unit = {
+      if (data == 0) {
+        ↑(V)
+        rA = 0
+        rD = 0
+        sNZ(0)
+      } else {
+        if (C) {
+          if (M) {
+            val a = (rA | rD << 8) & 0xFFFF
+            rA = a / data
+            rD = a % data
+          } else {
+            val a = (rA | rD << 16) & 0xFFFFFFFFL
+            rA = a / data
+            rD = a % data
+          }
+        } else {
+          if (M) {
+            val a: Short = rA | rD << 8
+            val b: Byte = data
+            rA = a / b
+            rD = a % b
+          } else {
+            val a = rA | rD << 16
+            rA = a / data
+            rD = a % data
+          }
+        }
+        sNZ(rA)
+        V := rD
       }
     }
 
@@ -419,13 +707,122 @@ class Processor extends ProcessorLike {
       sNZ(rA)
     }
 
+    def eor(data: Short): Unit = {
+      rA ^= data
+      sNZ(rA)
+    }
+
+    def rol(data: Short): Short = {
+      val i = data << 1 | (if (C) 1 else 0)
+      C := data & negM
+      sNZ(i)
+      i
+    }
+
+    def ror(data: Short): Short = {
+      val i = data >> 1 | (if (C) negM else 0)
+      C := data & 1
+      sNZ(i)
+      i
+    }
+
     def tsb(data: Short): Unit = {
       Z := data & rA
       rA |= data
     }
+
+    def bra(off: Byte, b: Boolean): Unit = if (b) pc += off
+
+    def stz(addr: Short): Unit = {
+      poke1(addr, 0)
+      if (!M) poke1(addr + 1, 0)
+    }
+
+    def sta(addr: Short): Unit = pokeM(addr, rA)
+
+    def stx(addr: Short): Unit = pokeX(addr, rX)
+
+    def sty(addr: Short): Unit = pokeX(addr, rY)
+
+    def lda(data: Short): Unit = {
+      rA = data
+      sNZ(rA)
+    }
+
+    def ldx(data: Short): Unit = {
+      rX = data
+      sNXZ(rX)
+    }
+
+    def ldy(data: Short): Unit = {
+      rY = data
+      sNXZ(rY)
+    }
+
+    def cmp(a: Short, b: Short): Unit = {
+      sNZC(a - b)
+    }
+
+    def cmpx(a: Short, b: Short): Unit = {
+      sNXZC(a - b)
+    }
+
+    def sep(data: Byte): Unit = setFlags(flags | data)
+
+    def rep(data: Byte): Unit = setFlags(flags & ~data)
+
+    def mmu(data: Byte): Unit = data match {
+      case 0x00 => mem.targetBus = rA
+      case 0x80 => rA = mem.targetBus & 0xFF
+
+      case 0x01 => busOffset = rA
+      case 0x81 => rA = busOffset
+
+      case 0x02 => busEnabled = true
+      case 0x82 => busEnabled = false
+
+      case 0x03 => mem.allowWrite = true
+      case 0x04 => mem.allowWrite = false
+
+      case 0x05 => brkAddr = rA
+      case 0x85 => rA = brkAddr
+
+      case 0x06 => resetAddr = rA
+      case 0x86 => rA = resetAddr
+    }
+
+  }
+
+  // Misc
+
+  private object hidden {
+    var rA: Short = 0
+    var rD: Short = 0
+    var rX: Short = 0
+    var rY: Short = 0
   }
 
   // Flags stuff
+
+  def setFlags(b: Byte): Unit = {
+    ↓(~(E.v | M.v))
+    flags |= b & Set(N, V, D, I, Z, C).map(_.v).reduce((i1, i2) => i1 | i2)
+    if (!E) {
+      flags |= X.v & b
+      if (X) {
+        rX &= 0xFF
+        rY &= 0xFF
+      }
+      if (M ^ (b & M.v)) {
+        if (M) {
+          rA |= rB << 8
+        } else {
+          rB = rA >> 8
+          rA &= 0xFF
+        }
+      }
+    }
+  }
 
   sealed class Flag(val v: Short) {
     def up(): Unit = ↑(v)
@@ -435,7 +832,7 @@ class Processor extends ProcessorLike {
     def :=(x: Boolean): Unit = if (x) up() else down()
   }
 
-  implicit def flag2bool(x: Flag): Boolean = (flags & x.v) == x.v
+  implicit def isup(x: Flag): Boolean = (flags & x.v) == x.v
 
   object E extends Flag(256)
 

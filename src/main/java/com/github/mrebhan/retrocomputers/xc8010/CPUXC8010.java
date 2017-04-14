@@ -426,7 +426,7 @@ public class CPUXC8010 implements ICPU {
                 regX--;
                 regX = regX & maskX();
                 updNZX(regX);
-            case 0xcb: // waid
+            case 0xcb: // wai
                 timeout();
                 break;
             case 0xcf: // pld
