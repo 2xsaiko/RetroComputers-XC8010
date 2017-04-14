@@ -58,7 +58,7 @@ class Processor extends ProcessorLike {
       if (is != null) {
         val loader = new Array[Byte](0x100)
         is.read(loader)
-        for (i <- loader.indices; b = loader(i)) mem(i) = b
+        for (i <- loader.indices; b = loader(i)) mem(i + 0x400) = b
       }
       is.close()
     }
@@ -113,293 +113,298 @@ class Processor extends ProcessorLike {
 
   override def insnGain: Int = 0x400
 
-  override def next(): Unit = pc1() match {
-    case 0x00 => // brk
-      push2(pc)
-      push1(flags)
-      pc = brkAddr
-    case 0x01 => // ora (ind, x)
-      i.ora(pc2IX())
-    case 0x02 => // nxt
-      pc = peek2(rI)
-      rI += 2
-    case 0x03 => // ora r, S
-      i.ora(peekM(pc1S()))
-    case 0x04 => // tsb zp
-      i.tsb(peekM(pc1()))
-    case 0x05 => // ora zp
-      i.ora(peekM(pc1()))
-    case 0x08 => // php
-      push1(flags)
-    case 0x09 => // ora #
-      i.ora(pcM())
-    case 0x0B => // rhi
-      pushr2(rI)
-    case 0x0F => // mul zp
-      i.mul(peekM(pc1()))
-    case 0x18 => // clc
-      ↓(C)
-    case 0x1A => // inc a
-      rA += 1
-      sNZ(rA)
-    case 0x20 => // jsr abs
-      push2(pc)
-      pc = pc2()
-    case 0x22 => // ent
-      pushr2(rI)
-      rI = pc + 2
-      pc = pc2()
-    case 0x23 => // and r, S
-      i.and(peekM(pc1S()))
-    case 0x28 => // plp
-      setFlags(pop1())
-    case 0x2A => // rol a
-      rA = i.rol(rA)
-    case 0x2B => // rli
-      rI = popr2()
-      sNXZ(rI)
-    case 0x30 => // bmi rel
-      i.bra(pc1(), N)
-    case 0x3D => // and abs, x
-      i.and(peekM(pc2X()))
-    case 0x38 => // sec
-      ↑(C)
-    case 0x3A => // dec a
-      rA -= 1
-      sNZ(rA)
-    case 0x3F => // mul abs, x
-      i.mul(peekM(pc2X()))
-    case 0x42 => // nxa
-      rA = peekM(rI)
-      rI += (if (M) 1 else 2)
-    case 0x43 => // eor r, S
-      i.eor(pc1S())
-    case 0x45 => // eor zp
-      i.eor(peekM(pc1()))
-    case 0x48 => // pha
-      pushM(rA)
-    case 0x49 => // eor #
-      i.eor(pcM())
-    case 0x4B => // rha
-      pushrM(rA)
-    case 0x4C => // jmp abs
-      pc = pc2()
-    case 0x50 => // bvc rel
-      i.bra(pc1(), !V)
-    case 0x5A => // phy
-      pushX(rY)
-    case 0x5B => // rhy
-      pushrX(rY)
-    case 0x5C => // txi
-      rI = rX
-      sNXZ(rX)
-    case 0x60 => // rts
-      pc = pop2()
-    case 0x63 => // adc r, S
-      i.adc(peekM(pc1S()))
-    case 0x64 => // stz zp
-      i.stz(pc1())
-    case 0x65 => // adc zp
-      i.adc(peekM(pc1()))
-    case 0x68 => // pla
-      rA = popM()
-      sNZ(rA)
-    case 0x69 => // adc #
-      i.adc(pcM())
-    case 0x6A => // ror a
-      rA = i.ror(rA)
-    case 0x6B => // rla
-      rA = poprM()
-      sNZ(rA)
-    case 0x6D => // adc abs
-      i.adc(peekM(pc2()))
-    case 0x70 => // bvs rel
-      i.bra(pc1(), V)
-    case 0x74 => // stz zp, x
-      i.stz(pc1X())
-    case 0x7A => // ply
-      rY = popX()
-      sNXZ(rY)
-    case 0x7B => // rly
-      rY = poprX()
-      sNXZ(rY)
-    case 0x7C => // jmp (ind, x)
-      pc = pc2IX()
-    case 0x7D => // adc abs, x
-      i.adc(peekM(pc2X()))
-    case 0x7F => // div abs, x
-      i.div(peekM(pc2X()))
-    case 0x80 => // bra rel
-      i.bra(pc1(), true)
-    case 0x84 => // sty zp
-      i.sty(pc1())
-    case 0x85 => // sta zp
-      i.sta(pc1())
-    case 0x86 => // stx zp
-      i.stx(pc1())
-    case 0x88 => // dey
-      rY -= 1
-      sNXZ(rY)
-    case 0x89 => // bit #
-      Z := !(rA & pcM())
-    case 0x8A => // txa
-      rA = rX
-      sNZ(rA)
-    case 0x8B => // txr
-      rp = rX
-      sNXZ(rX)
-    case 0x8C => // sty abs
-      i.sty(pc2())
-    case 0x8D => // sta abs
-      i.sta(pc2())
-    case 0x8E => // stx abs
-      i.stx(pc2())
-    case 0x90 => // bcc rel
-      i.bra(pc1(), !C)
-    case 0x91 => // sta (ind), y
-      i.sta(pc2IY())
-    case 0x92 => // sta (ind)
-      i.sta(pc2I())
-    case 0x93 => // sta (r, S), y
-      i.sta(pc2ISY())
-    case 0x94 => // sty zp, x
-      i.sty(pc1X())
-    case 0x95 => // sta zp, x
-      i.sta(pc1X())
-    case 0x98 => // tya
-      rA = rY
-    case 0x99 => // sta abs, y
-      i.sta(pc2Y())
-    case 0x9A => // txs
-      sp = rX
-    case 0x9C => // stz abs
-      i.stz(pc2())
-    case 0x9D => // sta abs, x
-      i.sta(pc2X())
-    case 0x9E => // stz abs, x
-      i.stz(pc2X())
-    case 0x9F => // sea
-      rD = 0
-      if ((M && rA.toByte < 0) || (!M && rA < 0)) rD = maskM
-    case 0xA0 => // ldy #
-      i.ldy(pcX())
-    case 0xA2 => // ldx #
-      i.ldx(pcX())
-    case 0xA3 => // lda r, S
-      i.lda(peekM(pc1S()))
-    case 0xA5 => // lda zp
-      i.lda(peekM(pc1()))
-    case 0xA7 => // lda r, R
-      i.lda(peekM(pc1R()))
-    case 0xA8 => // tay
-      rY = rA
-      sNXZ(rY)
-    case 0xA9 => // lda #
-      i.lda(pcM())
-    case 0xAA => // tax
-      rX = rA
-      sNXZ(rX)
-    case 0xAD => // lda abs
-      i.lda(peekM(pc2()))
-    case 0xAE => // ldx abs
-      i.ldx(peekM(pc2()))
-    case 0xB0 => // bcs rel
-      i.bra(pc1(), C)
-    case 0xB1 => // lda (ind), y
-      i.lda(peekM(pc2IY()))
-    case 0xB3 => // lda (r, S), y
-      i.lda(peekM(pc2ISY()))
-    case 0xB9 => // lda abs, y
-      i.lda(peekM(pc2Y()))
-    case 0xBA => // tsx
-      rX = sp
-      sNXZ(rX)
-    case 0xBD => // lda abs, x
-      i.lda(peekM(pc2X()))
-    case 0xC0 => // cpy #
-      i.cmpx(rY, pcX())
-    case 0xC2 => // rep #
-      i.rep(pc1())
-    case 0xC3 => // cmp r, S
-      i.cmp(rA, peekM(pc1S()))
-    case 0xC6 => // dec zp
-      i.dec(pc1())
-    case 0xC8 => // iny
-      rY += 1
-      sNXZ(rY)
-    case 0xC9 => // cmp #
-      i.cmp(rA, pcM())
-    case 0xCA => // dex
-      rX -= 1
-      sNXZ(rX)
-    case 0xCB => // wai
-      timeout()
-    case 0xCF => // pld
-      rD = popM()
-    case 0xD0 => // bne rel
-      i.bra(pc1(), !Z)
-    case 0xDA => // phx
-      pushX(rX)
-    case 0xDB => // stp
-      mem.halt()
-    case 0xDC => // tix
-      rX = rI
-      sNXZ(rX)
-    case 0xDD => // cmp abs, x
-      i.cmp(rA, peekM(pc2X()))
-    case 0xDE => // dec abs, x
-      i.dec(pc2X())
-    case 0xDF => // phd
-      pushM(rD)
-    case 0xE2 => // sep #
-      i.sep(pc1())
-    case 0xE3 => // sbc s, R
-      i.sbc(peekM(pc1S()))
-    case 0xE6 => // inc zp
-      i.inc(pc1())
-    case 0xEB => // xba
-      if (M) {
-        val b = rB
-        rB = rA
-        rA = b
-      } else {
-        val a = rA << 8
-        val b = rA >> 8 & 0xFF
-        rA = a | b
-      }
-    case 0xEE => // inc abs
-      i.inc(pc2())
-    case 0xEF => // mmu
-      i.mmu(pc1())
-    case 0xF0 => // beq rel
-      i.bra(pc1, Z)
-    case 0xFA => // plx
-      rX = popX()
-      sNXZ(rX)
-    case 0xFB => // xce
-      if (isup(C) != isup(E)) {
-        if (C) {
-          ↓(C)
-          ↑(E, X)
-          if (!M) rB = rA >> 8
-          ↑(M)
+  override def next(): Unit = {
+    val insn = pc1()
+    printf("%02x at %04x%n", insn, pc - 1)
+    insn match {
+      case 0x00 => // brk
+        push2(pc)
+        push1(flags)
+        pc = brkAddr
+      case 0x01 => // ora (ind, x)
+        in.ora(pc2IX())
+      case 0x02 => // nxt
+        pc = peek2(rI)
+        rI += 2
+      case 0x03 => // ora r, S
+        in.ora(peekM(pc1S()))
+      case 0x04 => // tsb zp
+        in.tsb(peekM(pc1()))
+      case 0x05 => // ora zp
+        in.ora(peekM(pc1()))
+      case 0x08 => // php
+        push1(flags)
+      case 0x09 => // ora #
+        in.ora(pcM())
+      case 0x0B => // rhi
+        pushr2(rI)
+      case 0x0F => // mul zp
+        in.mul(peekM(pc1()))
+      case 0x18 => // clc
+        ↓(C)
+      case 0x1A => // inc a
+        rA += 1
+        sNZ(rA)
+      case 0x20 => // jsr abs
+        push2(pc)
+        pc = pc2()
+      case 0x22 => // ent
+        pushr2(rI)
+        rI = pc + 2
+        pc = pc2()
+      case 0x23 => // and r, S
+        in.and(peekM(pc1S()))
+      case 0x28 => // plp
+        setFlags(pop1())
+      case 0x2A => // rol a
+        rA = in.rol(rA)
+      case 0x2B => // rli
+        rI = popr2()
+        sNXZ(rI)
+      case 0x30 => // bmi rel
+        in.bra(pc1(), N)
+      case 0x3D => // and abs, x
+        in.and(peekM(pc2X()))
+      case 0x38 => // sec
+        ↑(C)
+      case 0x3A => // dec a
+        rA -= 1
+        sNZ(rA)
+      case 0x3F => // mul abs, x
+        in.mul(peekM(pc2X()))
+      case 0x42 => // nxa
+        rA = peekM(rI)
+        rI += (if (M) 1 else 2)
+      case 0x43 => // eor r, S
+        in.eor(pc1S())
+      case 0x45 => // eor zp
+        in.eor(peekM(pc1()))
+      case 0x48 => // pha
+        pushM(rA)
+      case 0x49 => // eor #
+        in.eor(pcM())
+      case 0x4B => // rha
+        pushrM(rA)
+      case 0x4C => // jmp abs
+        pc = pc2()
+      case 0x50 => // bvc rel
+        in.bra(pc1(), !V)
+      case 0x5A => // phy
+        pushX(rY)
+      case 0x5B => // rhy
+        pushrX(rY)
+      case 0x5C => // txi
+        rI = rX
+        sNXZ(rX)
+      case 0x60 => // rts
+        pc = pop2()
+      case 0x63 => // adc r, S
+        in.adc(peekM(pc1S()))
+      case 0x64 => // stz zp
+        in.stz(pc1())
+      case 0x65 => // adc zp
+        in.adc(peekM(pc1()))
+      case 0x68 => // pla
+        rA = popM()
+        sNZ(rA)
+      case 0x69 => // adc #
+        in.adc(pcM())
+      case 0x6A => // ror a
+        rA = in.ror(rA)
+      case 0x6B => // rla
+        rA = poprM()
+        sNZ(rA)
+      case 0x6D => // adc abs
+        in.adc(peekM(pc2()))
+      case 0x70 => // bvs rel
+        in.bra(pc1(), V)
+      case 0x74 => // stz zp, x
+        in.stz(pc1X())
+      case 0x7A => // ply
+        rY = popX()
+        sNXZ(rY)
+      case 0x7B => // rly
+        rY = poprX()
+        sNXZ(rY)
+      case 0x7C => // jmp (ind, x)
+        pc = pc2IX()
+      case 0x7D => // adc abs, x
+        in.adc(peekM(pc2X()))
+      case 0x7F => // div abs, x
+        in.div(peekM(pc2X()))
+      case 0x80 => // bra rel
+        in.bra(pc1(), true)
+      case 0x84 => // sty zp
+        in.sty(pc1())
+      case 0x85 => // sta zp
+        in.sta(pc1())
+      case 0x86 => // stx zp
+        in.stx(pc1())
+      case 0x88 => // dey
+        rY -= 1
+        sNXZ(rY)
+      case 0x89 => // bit #
+        Z := !(rA & pcM())
+      case 0x8A => // txa
+        rA = rX
+        sNZ(rA)
+      case 0x8B => // txr
+        rp = rX
+        sNXZ(rX)
+      case 0x8C => // sty abs
+        in.sty(pc2())
+      case 0x8D => // sta abs
+        in.sta(pc2())
+      case 0x8E => // stx abs
+        in.stx(pc2())
+      case 0x90 => // bcc rel
+        in.bra(pc1(), !C)
+      case 0x91 => // sta (ind), y
+        in.sta(pc2IY())
+      case 0x92 => // sta (ind)
+        in.sta(pc2I())
+      case 0x93 => // sta (r, S), y
+        in.sta(pc2ISY())
+      case 0x94 => // sty zp, x
+        in.sty(pc1X())
+      case 0x95 => // sta zp, x
+        in.sta(pc1X())
+      case 0x98 => // tya
+        rA = rY
+      case 0x99 => // sta abs, y
+        in.sta(pc2Y())
+      case 0x9A => // txs
+        sp = rX
+      case 0x9C => // stz abs
+        in.stz(pc2())
+      case 0x9D => // sta abs, x
+        in.sta(pc2X())
+      case 0x9E => // stz abs, x
+        in.stz(pc2X())
+      case 0x9F => // sea
+        rD = 0
+        if ((M && rA.toByte < 0) || (!M && rA < 0)) rD = maskM
+      case 0xA0 => // ldy #
+        in.ldy(pcX())
+      case 0xA2 => // ldx #
+        in.ldx(pcX())
+      case 0xA3 => // lda r, S
+        in.lda(peekM(pc1S()))
+      case 0xA5 => // lda zp
+        in.lda(peekM(pc1()))
+      case 0xA7 => // lda r, R
+        in.lda(peekM(pc1R()))
+      case 0xA8 => // tay
+        rY = rA
+        sNXZ(rY)
+      case 0xA9 => // lda #
+        in.lda(pcM())
+      case 0xAA => // tax
+        rX = rA
+        sNXZ(rX)
+      case 0xAD => // lda abs
+        in.lda(peekM(pc2()))
+      case 0xAE => // ldx abs
+        in.ldx(peekM(pc2()))
+      case 0xB0 => // bcs rel
+        in.bra(pc1(), C)
+      case 0xB1 => // lda (ind), y
+        in.lda(peekM(pc2IY()))
+      case 0xB3 => // lda (r, S), y
+        in.lda(peekM(pc2ISY()))
+      case 0xB9 => // lda abs, y
+        in.lda(peekM(pc2Y()))
+      case 0xBA => // tsx
+        rX = sp
+        sNXZ(rX)
+      case 0xBD => // lda abs, x
+        in.lda(peekM(pc2X()))
+      case 0xC0 => // cpy #
+        in.cmpx(rY, pcX())
+      case 0xC2 => // rep #
+        in.rep(pc1())
+      case 0xC3 => // cmp r, S
+        in.cmp(rA, peekM(pc1S()))
+      case 0xC6 => // dec zp
+        in.dec(pc1())
+      case 0xC8 => // iny
+        rY += 1
+        sNXZ(rY)
+      case 0xC9 => // cmp #
+        in.cmp(rA, pcM())
+      case 0xCA => // dex
+        rX -= 1
+        sNXZ(rX)
+      case 0xCB => // wai
+        timeout()
+      case 0xCF => // pld
+        rD = popM()
+      case 0xD0 => // bne rel
+        in.bra(pc1(), !Z)
+      case 0xDA => // phx
+        pushX(rX)
+      case 0xDB => // stp
+        mem.halt()
+      case 0xDC => // tix
+        rX = rI
+        sNXZ(rX)
+      case 0xDD => // cmp abs, x
+        in.cmp(rA, peekM(pc2X()))
+      case 0xDE => // dec abs, x
+        in.dec(pc2X())
+      case 0xDF => // phd
+        pushM(rD)
+      case 0xE2 => // sep #
+        in.sep(pc1())
+      case 0xE3 => // sbc s, R
+        in.sbc(peekM(pc1S()))
+      case 0xE6 => // inc zp
+        in.inc(pc1())
+      case 0xEB => // xba
+        if (M) {
+          val b = rB
+          rB = rA
+          rA = b
         } else {
-          ↑(C)
-          ↓(E)
+          val a = rA << 8
+          val b = rA >> 8 & 0xFF
+          rA = a | b
         }
-      }
-    case 0xFE => // inc abs, x
-      i.inc(pc2X())
-    case insn =>
-      printf("Invalid opcode: %02x at %04x%n", insn, pc - 1)
-      mem.halt()
+      case 0xEE => // inc abs
+        in.inc(pc2())
+      case 0xEF => // mmu
+        in.mmu(pc1())
+      case 0xF0 => // beq rel
+        in.bra(pc1(), Z)
+      case 0xFA => // plx
+        rX = popX()
+        sNXZ(rX)
+      case 0xFB => // xce
+        if (isup(C) != isup(E)) {
+          if (C) {
+            ↓(C)
+            ↑(E, X)
+            if (!M) rB = rA >> 8
+            ↑(M)
+          } else {
+            ↑(C)
+            ↓(E)
+          }
+        }
+      case 0xFE => // inc abs, x
+        in.inc(pc2X())
+      case insn =>
+        printf("Invalid opcode: %02x at %04x%n", insn, pc - 1)
+        mem.halt()
+    }
   }
 
   // Read from PC
 
   private def pc1(): Short = peek1 {
     pc += 1
-    peek1(pc - 1)
+    val x = peek1(pc - 1)
+    return x
   }
 
   private def pc2(): Short = pc1() | pc1() << 8
@@ -594,7 +599,7 @@ class Processor extends ProcessorLike {
 
   // Instruction helpers
 
-  private object i {
+  private object in {
     def adc(data: Short): Unit = {
       // TODO: implement BCD addition
       var i = rA + data
@@ -820,6 +825,7 @@ class Processor extends ProcessorLike {
           rB = rA >> 8
           rA &= 0xFF
         }
+        M := b & M.v
       }
     }
   }
