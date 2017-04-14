@@ -401,10 +401,9 @@ class Processor extends ProcessorLike {
 
   // Read from PC
 
-  private def pc1(): Short = peek1 {
+  private def pc1(): Short = {
     pc += 1
-    val x = peek1(pc - 1)
-    return x
+    peek1(pc - 1)
   }
 
   private def pc2(): Short = pc1() | pc1() << 8
