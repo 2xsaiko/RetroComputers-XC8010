@@ -146,8 +146,9 @@ class Processor extends ProcessorLike {
         rA += 1
         sNZ(rA)
       case 0x20 => // jsr abs
+        val addr = pc2()
         push2(pc)
-        pc = pc2()
+        pc = addr
       case 0x22 => // ent
         pushr2(rI)
         rI = pc + 2
@@ -393,7 +394,7 @@ class Processor extends ProcessorLike {
         }
       case 0xFE => // inc abs, x
         in.inc(pc2X())
-      case insn =>
+      case _ =>
         printf("Invalid opcode: %02x at %04x%n", insn, pc - 1)
         mem.halt()
     }
@@ -443,8 +444,12 @@ class Processor extends ProcessorLike {
   // Read from memory address
 
   private def peek1(addr: Short): Short = {
-    // TODO peripheral access
-    mem(addr) & 0xFF
+    val uaddr = addr & 0xFFFF
+    val ubusOff = busOffset & 0xFFFF
+    if (busEnabled && uaddr >= ubusOff && uaddr < ubusOff + 0x0100) {
+      if (mem.bus.isDefined) mem.bus.get.peek(addr - busOffset)
+      else 0
+    } else mem(addr) & 0xFF
   }
 
   private def peek2(addr: Short): Short = peek1(addr) | peek1(addr + 1) << 8
@@ -456,8 +461,11 @@ class Processor extends ProcessorLike {
   // Write to memory address
 
   private def poke1(addr: Short, b: Byte): Unit = {
-    // TODO peripheral access
-    mem(addr) = b
+    val uaddr = addr & 0xFFFF
+    val ubusOff = busOffset & 0xFFFF
+    if (busEnabled && uaddr >= ubusOff && uaddr < ubusOff + 0x0100) {
+      if (mem.bus.isDefined) mem.bus.get.poke(addr - busOffset, b)
+    } else mem(addr) = b
   }
 
   private def poke2(addr: Short, s: Short): Unit = {
@@ -600,9 +608,14 @@ class Processor extends ProcessorLike {
 
   private object in {
     def adc(data: Short): Unit = {
-      // TODO: implement BCD addition
-      var i = rA + data
-      if (C) i += 1
+      val i = if (D) {
+        val a = fromBCD(rA)
+        val d = fromBCD(data)
+        if (a.isDefined && d.isDefined) toBCD(a.get + d.get + (if (C) 1 else 0))
+        else 0
+      } else {
+        rA + data + (if (C) 1 else 0)
+      }
       C := i > maskM
       V := (data ^ i) & (rA ^ i) & negM
       rA = i
@@ -610,9 +623,14 @@ class Processor extends ProcessorLike {
     }
 
     def sbc(data: Short): Unit = {
-      // TODO: implement BCD subtraction
-      var i = rA - data
-      if (!C) i -= 1
+      val i = if (D) {
+        val a = fromBCD(rA)
+        val d = fromBCD(data)
+        if (a.isDefined && d.isDefined) toBCD(a.get - d.get - (if (!C) 1 else 0))
+        else 0
+      } else {
+        rA - data - (if (!C) 1 else 0)
+      }
       C := (i & maskM + 1) == 0
       V := (maskM - data ^ i) & (rA ^ i) & negM
       rA = i
@@ -813,10 +831,6 @@ class Processor extends ProcessorLike {
     flags |= b & Set(N, V, D, I, Z, C).map(_.v).reduce((i1, i2) => i1 | i2)
     if (!E) {
       flags |= X.v & b
-      if (X) {
-        rX &= 0xFF
-        rY &= 0xFF
-      }
       if (M ^ (b & M.v)) {
         if (M) {
           rA |= rB << 8
