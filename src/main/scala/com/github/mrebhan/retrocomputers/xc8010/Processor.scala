@@ -115,7 +115,7 @@ class Processor extends ProcessorLike {
 
   override def next(): Unit = {
     val insn = pc1()
-    printf("%02x at %04x%n", insn, pc - 1)
+    //    printf("%02x at %04x%n", insn, pc - 1)
     insn match {
       case 0x00 => // brk
         push2(pc)
