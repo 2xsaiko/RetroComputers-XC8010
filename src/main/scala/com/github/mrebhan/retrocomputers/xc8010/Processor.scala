@@ -32,7 +32,7 @@ class Processor extends ProcessorLike {
   private def rD_=(s: Short): Unit = hidden.rD = s
   private def rX: Short = hidden.rX & maskX
   private def rX_=(s: Short): Unit = hidden.rX = s
-  private def rY: Short = hidden.rA & maskX
+  private def rY: Short = hidden.rY & maskX
   private def rY_=(s: Short): Unit = hidden.rY = s
 
   override def reset(hard: Boolean): Unit = {
@@ -447,8 +447,10 @@ class Processor extends ProcessorLike {
     val uaddr = addr & 0xFFFF
     val ubusOff = busOffset & 0xFFFF
     if (busEnabled && uaddr >= ubusOff && uaddr < ubusOff + 0x0100) {
-      if (mem.bus.isDefined) mem.bus.get.peek(addr - busOffset)
-      else 0
+      if (mem.bus.isEmpty || mem.bus.get.busId != mem.targetBus) {
+        timeout()
+        0
+      } else mem.bus.get.peek(addr - busOffset)
     } else mem(addr) & 0xFF
   }
 
@@ -464,7 +466,8 @@ class Processor extends ProcessorLike {
     val uaddr = addr & 0xFFFF
     val ubusOff = busOffset & 0xFFFF
     if (busEnabled && uaddr >= ubusOff && uaddr < ubusOff + 0x0100) {
-      if (mem.bus.isDefined) mem.bus.get.poke(addr - busOffset, b)
+      if (mem.bus.isEmpty || mem.bus.get.busId != mem.targetBus) timeout()
+      else mem.bus.get.poke(addr - busOffset, b)
     } else mem(addr) = b
   }
 

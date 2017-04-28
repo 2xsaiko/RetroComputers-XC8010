@@ -13,7 +13,7 @@ apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'scala'
 
 version = "1.1.0"
-group= "com.github.mrebhan.xc8010" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+group = "com.github.mrebhan.xc8010" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "rc-xc8010"
 
 sourceCompatibility = targetCompatibility = "1.8" // Need this here so eclipse task generates correctly.
@@ -24,7 +24,7 @@ compileJava {
 minecraft {
     version = "1.11.2-13.20.0.2282"
     runDir = "run"
-    
+
     // the mappings can be changed at any time, and must be in the following format.
     // snapshot_YYYYMMDD   snapshot are built nightly.
     // stable_#            stables are built at the discretion of the MCP team.
@@ -41,11 +41,10 @@ repositories {
 }
 
 dependencies {
-    compile "org.scala-lang:scala-library:2.12.1"
+    compile "org.scala-lang:scala-library:2.11.11"
 }
 
-processResources
-{
+processResources {
     // this will ensure that this task is redone when the versions change.
     inputs.property "version", project.version
     inputs.property "mcversion", project.minecraft.version
@@ -53,11 +52,11 @@ processResources
     // replace stuff in mcmod.info, nothing else
     from(sourceSets.main.resources.srcDirs) {
         include 'mcmod.info'
-                
+
         // replace version and mcversion
-        expand 'version':project.version, 'mcversion':project.minecraft.version
+        expand 'version': project.version, 'mcversion': project.minecraft.version
     }
-        
+
     // copy everything else, thats not the mcmod.info
     from(sourceSets.main.resources.srcDirs) {
         exclude 'mcmod.info'
@@ -68,5 +67,5 @@ sourceSets.main.scala.srcDir "src/main/java"
 sourceSets.main.java.srcDirs = []
 
 tasks.withType(ScalaCompile) {
-    scalaCompileOptions.additionalParameters = ["-Xexperimental"]
+    // scalaCompileOptions.additionalParameters = ["-Xexperimental"]
 }
