@@ -121,7 +121,6 @@
         .wp DROP
         .branch RL_loop
     RL_c:
-
         .wp DUP
         .wp EMIT
         .wp OVER
@@ -157,6 +156,7 @@
     nxt
 
     dcode CR,2,,
+        rep #$20
         jsr bind_term
         mmu $81
         tax
@@ -165,20 +165,33 @@
         lda $0002, x
         inc a
         cmp #$32
+        bne CR_continue
+        rep #$20
+        jsr SCROLL_begin
+        sep #$20
+        lda #$31
+    CR_continue:
         sta $0002, x
-        beq SCROLL
         rep #$20
     nxt
 
     dcode SCROLL,6,,
         jsr bind_term
+        jsr SCROLL_begin
+    nxt
+
+    SCROLL_begin:
         mmu $81
         tax
         sep #$20
         lda $0002, x
-        beq SCROLL_nocursor
+        beq SCROLL_topline
         dec $0002, x
-    SCROLL_nocursor:
+        bra SCROLL_cont
+    SCROLL_topline:
+        lda #$31
+        sta $0002, x
+    SCROLL_cont:
         stz $0008, x
         stz $000A, x
         stz $000B, x
@@ -200,7 +213,7 @@
         sta $0007, x
         wai
         rep #$20
-    nxt
+    rts
 
     dword PAGE,4,,
         .wp BINDTERM

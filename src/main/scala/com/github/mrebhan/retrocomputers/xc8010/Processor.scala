@@ -2,7 +2,7 @@ package com.github.mrebhan.retrocomputers.xc8010
 
 import com.github.mrebhan.retrocomputers.common.api.Conversions._
 import com.github.mrebhan.retrocomputers.common.api.crosscompat.NBTCompoundLike
-import com.github.mrebhan.retrocomputers.common.api.crosscompat.NBTCompoundLike.getValue
+import com.github.mrebhan.retrocomputers.common.api.crosscompat.Value.getValue
 import com.github.mrebhan.retrocomputers.common.api.{MemoryProvider, ProcessorLike}
 
 /**
@@ -115,8 +115,8 @@ class Processor extends ProcessorLike {
 
   override def next(): Unit = {
     val insn = pc1()
-    //    printf("%02x at %04x%n", insn, pc - 1)
-    insn match {
+
+    insn.unsigned match {
       case 0x00 => // brk
         push2(pc)
         push1(flags)
@@ -450,7 +450,7 @@ class Processor extends ProcessorLike {
       if (mem.bus.isEmpty || mem.bus.get.busId != mem.targetBus) {
         timeout()
         0
-      } else mem.bus.get.peek(addr - busOffset)
+      } else mem.bus.get.peek(addr - busOffset) & 0xFF
     } else mem(addr) & 0xFF
   }
 
@@ -796,8 +796,9 @@ class Processor extends ProcessorLike {
 
     def rep(data: Byte): Unit = setFlags(flags & ~data)
 
-    def mmu(data: Byte): Unit = data match {
+    def mmu(data: Byte): Unit = data.unsigned match {
       case 0x00 => mem.targetBus = rA
+        if (mem.isBusConnected && mem.bus.get.busId != mem.targetBus) timeout()
       case 0x80 => rA = mem.targetBus & 0xFF
 
       case 0x01 => busOffset = rA

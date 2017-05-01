@@ -1,5 +1,6 @@
 package com.github.mrebhan.retrocomputers.xc8010
 
+import com.github.mrebhan.retrocomputers.common.api.item.ItemReadonlyDisk
 import net.minecraft.client.renderer.block.model.ModelResourceLocation
 import net.minecraft.item.Item
 import net.minecraftforge.client.model.ModelLoader
@@ -26,10 +27,22 @@ object Mod {
       .setUnlocalizedName("xc8010:cpu")
       .setRegistryName("xc8010:cpu")
 
+    val disks = new ItemReadonlyDisk(
+      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/minforth.bin"),
+      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/forth.bin"),
+      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/extforth.bin"),
+      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/decompiler.img")
+    ).setRegistryName("xc8010:disk").setUnlocalizedName("xc8010:disk")
+
     GameRegistry.register(cpu)
+    GameRegistry.register(disks)
 
     if (e.getSide == Side.CLIENT) {
       ModelLoader.setCustomModelResourceLocation(cpu, 0, new ModelResourceLocation("xc8010:cpu", "inventory"))
+      ModelLoader.setCustomModelResourceLocation(disks, 0, new ModelResourceLocation("retrocomputers:system_disk", "inventory"))
+      ModelLoader.setCustomModelResourceLocation(disks, 1, new ModelResourceLocation("retrocomputers:system_disk", "inventory"))
+      ModelLoader.setCustomModelResourceLocation(disks, 2, new ModelResourceLocation("retrocomputers:system_disk", "inventory"))
+      ModelLoader.setCustomModelResourceLocation(disks, 3, new ModelResourceLocation("retrocomputers:system_disk", "inventory"))
     }
   }
 
