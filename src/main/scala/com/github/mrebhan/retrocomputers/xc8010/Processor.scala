@@ -396,7 +396,7 @@ class Processor extends ProcessorLike {
         in.inc(pc2X())
       case _ =>
         printf("Invalid opcode: %02x at %04x%n", insn, pc - 1)
-        mem.halt()
+      //        mem.halt()
     }
   }
 
@@ -701,7 +701,7 @@ class Processor extends ProcessorLike {
             rA = a / data
             rD = a % data
           } else {
-            val a = (rA | rD << 16) & 0xFFFFFFFFL
+            val a = (rA | (rD << 16L)) & 0xFFFFFFFFL
             rA = a / data
             rD = a % data
           }
