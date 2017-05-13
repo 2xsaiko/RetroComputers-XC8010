@@ -1,6 +1,6 @@
 package com.github.mrebhan.retrocomputers.xc8010
 
-import com.github.mrebhan.retrocomputers.common.api.{ProcessorFactory, ProcessorLike}
+import com.github.mrebhan.retrocomputers.common.api.{CreativeTab, ProcessorFactory, ProcessorLike}
 import net.minecraft.item.Item
 
 /**
@@ -9,6 +9,7 @@ import net.minecraft.item.Item
 class ProcessorItem() extends Item with ProcessorFactory {
   setHasSubtypes(true)
   setMaxDamage(3)
+  setCreativeTab(CreativeTab)
 
   override def apply(): ProcessorLike = new Processor
 
