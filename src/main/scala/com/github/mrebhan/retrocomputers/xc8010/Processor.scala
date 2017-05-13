@@ -697,11 +697,11 @@ class Processor extends ProcessorLike {
       } else {
         if (C) {
           if (M) {
-            val a = (rA | rD << 8) & 0xFFFF
+            val a = (rA.unsigned | rD << 8) & 0xFFFF
             rA = a / data
             rD = a % data
           } else {
-            val a = (rA | (rD << 16L)) & 0xFFFFFFFFL
+            val a = (rA.unsigned | (rD << 16L)) & 0xFFFFFFFFL
             rA = a / data
             rD = a % data
           }
