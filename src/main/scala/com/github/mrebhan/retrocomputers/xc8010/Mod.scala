@@ -31,7 +31,8 @@ object Mod {
       () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/minforth.bin"),
       () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/forth.bin"),
       () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/extforth.bin"),
-      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/decompiler.img")
+      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/decompiler.img"),
+      () => getClass.getClassLoader.getResourceAsStream("assets/xc8010/radio.img")
     ).setRegistryName("xc8010:disk").setUnlocalizedName("xc8010:disk")
 
     GameRegistry.register(cpu)
